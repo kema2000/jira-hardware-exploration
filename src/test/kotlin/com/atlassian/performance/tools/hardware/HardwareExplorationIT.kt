@@ -133,10 +133,10 @@ class HardwareExplorationIT {
 
     fun createCredentialProviders(): AWSCredentialsProviderChain {
         return AWSCredentialsProviderChain(
-            DefaultAWSCredentialsProviderChain(),
             STSAssumeRoleSessionCredentialsProvider.Builder(
                 "arn:aws:iam::695067801333:role/bamboo-sydney",
-                UUID.randomUUID().toString()).build()
+                UUID.randomUUID().toString()).build(),
+            DefaultAWSCredentialsProviderChain()
         )
     }
 
