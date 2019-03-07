@@ -40,7 +40,7 @@ internal class LogConfiguration(
                         .withName("console")
                         .withLayout(layout("%d{ABSOLUTE} %highlight{%-5level} %x %msg%n"))
                         .build(),
-                    Level.INFO,
+                    Level.ALL,
                     null
                 )
             },
