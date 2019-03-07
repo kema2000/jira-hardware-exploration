@@ -1,32 +1,23 @@
 package com.atlassian.performance.tools.hardware
 
-import com.amazonaws.auth.AWSCredentialsProviderChain
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
-import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider
 import com.amazonaws.regions.Regions.EU_WEST_1
 import com.amazonaws.services.ec2.model.InstanceType.*
-import com.atlassian.performance.tools.aws.api.Aws
 import com.atlassian.performance.tools.aws.api.Investment
 import com.atlassian.performance.tools.aws.api.StorageLocation
-import com.atlassian.performance.tools.aws.api.TextCapacityMediator
 import com.atlassian.performance.tools.awsinfrastructure.api.DatasetCatalogue
+import com.atlassian.performance.tools.hardware.IntegrationTestRuntime.taskName
 import com.atlassian.performance.tools.lib.LicenseOverridingDatabase
-import com.atlassian.performance.tools.lib.LogConfigurationFactory
 import com.atlassian.performance.tools.lib.overrideDatabase
 import com.atlassian.performance.tools.lib.toExistingFile
 import com.atlassian.performance.tools.virtualusers.api.TemporalRate
 import com.atlassian.performance.tools.virtualusers.api.VirtualUserLoad
-import com.atlassian.performance.tools.workspace.api.RootWorkspace
 import com.atlassian.performance.tools.workspace.api.TestWorkspace
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import org.apache.logging.log4j.core.config.ConfigurationFactory
-import org.junit.BeforeClass
 import org.junit.Test
 import java.net.URI
 import java.nio.file.Paths
 import java.time.Duration
-import java.util.*
 
 class HardwareExplorationIT {
 
@@ -120,34 +111,8 @@ class HardwareExplorationIT {
                 useCase = "Test hardware recommendations - $taskName",
                 lifespan = Duration.ofHours(2)
             ),
-            aws = Aws(
-                credentialsProvider = createCredentialProviders(),
-                region = EU_WEST_1,
-                regionsWithHousekeeping = listOf(EU_WEST_1),
-                capacity = TextCapacityMediator(EU_WEST_1),
-                batchingCloudformationRefreshPeriod = Duration.ofSeconds(20)
-            ),
-            task = workspace
+            aws = IntegrationTestRuntime.aws,
+            task = IntegrationTestRuntime.workspace
         ).exploreHardware()
-    }
-
-    fun createCredentialProviders(): AWSCredentialsProviderChain {
-        return AWSCredentialsProviderChain(
-            STSAssumeRoleSessionCredentialsProvider.Builder(
-                "arn:aws:iam::695067801333:role/bamboo-sydney",
-                UUID.randomUUID().toString()).build(),
-            DefaultAWSCredentialsProviderChain()
-        )
-    }
-
-    companion object {
-        const val taskName = "QUICK-54-controlled-load-3"
-        private val workspace = RootWorkspace(Paths.get("build")).isolateTask(taskName)
-
-        @BeforeClass
-        @JvmStatic
-        fun setUp() {
-            ConfigurationFactory.setConfigurationFactory(LogConfigurationFactory(workspace))
-        }
     }
 }
