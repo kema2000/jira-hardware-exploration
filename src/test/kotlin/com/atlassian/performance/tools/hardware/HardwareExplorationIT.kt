@@ -1,6 +1,8 @@
 package com.atlassian.performance.tools.hardware
 
+import com.amazonaws.auth.AWSCredentialsProviderChain
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
+import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider
 import com.amazonaws.regions.Regions.EU_WEST_1
 import com.amazonaws.services.ec2.model.InstanceType.*
 import com.atlassian.performance.tools.aws.api.Aws
@@ -24,6 +26,7 @@ import org.junit.Test
 import java.net.URI
 import java.nio.file.Paths
 import java.time.Duration
+import java.util.*
 
 class HardwareExplorationIT {
 
@@ -118,7 +121,7 @@ class HardwareExplorationIT {
                 lifespan = Duration.ofHours(2)
             ),
             aws = Aws(
-                credentialsProvider = DefaultAWSCredentialsProviderChain(),
+                credentialsProvider = createCredentialProviders(),
                 region = EU_WEST_1,
                 regionsWithHousekeeping = listOf(EU_WEST_1),
                 capacity = TextCapacityMediator(EU_WEST_1),
@@ -126,6 +129,15 @@ class HardwareExplorationIT {
             ),
             task = workspace
         ).exploreHardware()
+    }
+
+    fun createCredentialProviders(): AWSCredentialsProviderChain {
+        return AWSCredentialsProviderChain(
+            DefaultAWSCredentialsProviderChain(),
+            STSAssumeRoleSessionCredentialsProvider.Builder(
+                "arn:aws:iam::695067801333:role/bamboo-sydney",
+                UUID.randomUUID().toString()).build()
+        )
     }
 
     companion object {
