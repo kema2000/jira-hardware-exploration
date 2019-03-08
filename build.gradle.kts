@@ -39,6 +39,17 @@ task<Test>("exploreHardware").apply {
     maxHeapSize = "8g"
 }
 
+task<Test>("testVuConcurrent").apply {
+    description = "testing VU concurrent issue."
+    include("**/VUConcurrentTest.class")
+    val shadowJarTask = tasks.getByPath(":virtual-users:shadowJar")
+    dependsOn(shadowJarTask)
+    systemProperty("jpt.virtual-users.shadow-jar", shadowJarTask.outputs.files.files.first())
+    failFast = true
+    maxHeapSize = "8g"
+}
+
+
 task<Test>("cleanUpAfterBamboo").apply {
     include("**/BambooCleanupIT.class")
 }
@@ -47,7 +58,7 @@ dependencies {
     testCompile(project(":virtual-users"))
     testCompile("com.atlassian.performance.tools:jira-performance-tests:[3.0.0,4.0.0)")
     testCompile("com.atlassian.performance.tools:infrastructure:[4.6.0,5.0.0)")
-    testCompile("com.atlassian.performance.tools:virtual-users:[3.5.0,4.0.0)")
+    testCompile("com.atlassian.performance.tools:virtual-users:[3.6.0,4.0.0)")
     testCompile("com.atlassian.performance.tools:jira-software-actions:[1.1.0,2.0.0]")
     testCompile("com.atlassian.performance.tools:aws-infrastructure:2.1.0") // workaround for JPERF-357
     testCompile("com.atlassian.performance.tools:aws-resources:[1.3.4,2.0.0)")
