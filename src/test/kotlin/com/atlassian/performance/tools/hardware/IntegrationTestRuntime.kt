@@ -25,7 +25,7 @@ object IntegrationTestRuntime {
         aws = Aws(
             credentialsProvider = AWSCredentialsProviderChain(
                 STSAssumeRoleSessionCredentialsProvider.Builder(
-                    "arn:aws:iam::695067801333:role/bamboo-sydney",
+                    "arn:aws:iam::081862267333:role/server-gdn-bamboo",
                     UUID.randomUUID().toString()).build(),
                 DefaultAWSCredentialsProviderChain()
             ),
