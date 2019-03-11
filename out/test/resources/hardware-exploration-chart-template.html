@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><%= application =%> hardware exploration</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.bundle.min.js"></script>
+    <script src="https://unpkg.com/chartjs-plugin-error-bars@1.1.0/build/Plugin.Errorbars.js"></script>
+    <style>
+        span.commit-flag {
+            padding: 3px;
+            background: teal;
+            font-family: monospace;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<span class="commit-flag">
+    Generated from
+    <a href="https://github.com/atlassian/jira-hardware-exploration/commit/<%= commit =%>"><%= commit =%></a>
+</span>
+<canvas id="apdex-chart"></canvas>
+<canvas id="error-rate-chart"></canvas>
+<canvas id="throughput-chart"></canvas>
+<script>
+    new Chart(
+        document.getElementById("apdex-chart").getContext("2d"),
+        {
+            type: 'bar',
+            data: '<%= apdexChartData =%>',
+            options: {
+                responsive: true,
+                title: {
+                    display: true,
+                    text: '<%= application =%> hardware exploration: Apdex'
+                },
+                scales: {
+                    yAxes: [
+                        {
+                            type: "linear",
+                            display: true,
+                            position: "left",
+                            scaleLabel: {
+                                display: true,
+                                labelString: "Apdex [0-1]"
+                            },
+                            id: "y-axis-0",
+                            ticks: {
+                                min: 0
+                            }
+                        }
+                    ],
+                    xAxes: [
+                        {
+                            scaleLabel: {
+                                display: true,
+                                labelString: "Jira nodes"
+                            }
+                        }
+                    ]
+                },
+                tooltips: {
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            return tooltipItems[0].xLabel + " Jira nodes";
+                        }
+                    }
+                }
+            }
+        }
+    );
+</script>
+<script>
+    new Chart(
+        document.getElementById("error-rate-chart").getContext("2d"),
+        {
+            type: 'bar',
+            data: '<%= errorRateChartData =%>',
+            options: {
+                responsive: true,
+                title: {
+                    display: true,
+                    text: '<%= application =%> hardware exploration: error rate'
+                },
+                scales: {
+                    yAxes: [
+                        {
+                            type: "linear",
+                            display: true,
+                            position: "left",
+                            id: "y-axis-0",
+                            scaleLabel: {
+                                display: true,
+                                labelString: "error rate [%]"
+                            },
+                            ticks: {
+                                min: 0
+                            }
+                        }
+                    ],
+                    xAxes: [
+                        {
+                            scaleLabel: {
+                                display: true,
+                                labelString: "Jira nodes"
+                            }
+                        }
+                    ]
+                },
+                tooltips: {
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            return tooltipItems[0].xLabel + " Jira nodes";
+                        }
+                    }
+                }
+            }
+        }
+    );
+</script>
+<script>
+    new Chart(
+        document.getElementById("throughput-chart").getContext("2d"),
+        {
+            type: 'bar',
+            data: '<%= throughputChartData =%>',
+            options: {
+                responsive: true,
+                title: {
+                    display: true,
+                    text: '<%= application =%> hardware exploration: throughput'
+                },
+                scales: {
+                    yAxes: [
+                        {
+                            type: "linear",
+                            display: true,
+                            position: "left",
+                            id: "y-axis-0",
+                            scaleLabel: {
+                                display: true,
+                                labelString: "HTTP throughput [requests / s]"
+                            },
+                            ticks: {
+                                min: 0
+                            }
+                        }
+                    ],
+                    xAxes: [
+                        {
+                            scaleLabel: {
+                                display: true,
+                                labelString: "Jira nodes"
+                            }
+                        }
+                    ]
+                },
+                tooltips: {
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            return tooltipItems[0].xLabel + " Jira nodes";
+                        }
+                    }
+                }
+            }
+        }
+    );
+</script>
+</body>
+</html>

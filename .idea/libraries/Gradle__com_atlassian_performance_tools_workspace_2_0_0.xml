@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.atlassian.performance.tools:workspace:2.0.0">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/atlassian/performance/tools/workspace/2.0.0/workspace-2.0.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.atlassian.performance.tools/workspace/2.0.0/98038febf1232b733929851d0c7fc098292b89d3/workspace-2.0.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

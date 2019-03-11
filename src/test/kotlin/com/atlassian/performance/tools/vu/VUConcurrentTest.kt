@@ -19,23 +19,31 @@ import com.atlassian.performance.tools.awsinfrastructure.api.virtualusers.Multic
 import com.atlassian.performance.tools.hardware.ApplicationScale
 import com.atlassian.performance.tools.hardware.vu.VuUserCreationScenario
 import com.atlassian.performance.tools.infrastructure.api.app.Apps
+import com.atlassian.performance.tools.infrastructure.api.app.MavenDownloadedApps
 import com.atlassian.performance.tools.infrastructure.api.browser.chromium.Chromium69
 import com.atlassian.performance.tools.infrastructure.api.jira.JiraLaunchTimeouts
 import com.atlassian.performance.tools.infrastructure.api.jira.JiraNodeConfig
 import com.atlassian.performance.tools.infrastructure.api.profiler.AsyncProfiler
 import com.atlassian.performance.tools.infrastructure.api.splunk.DisabledSplunkForwarder
 import com.atlassian.performance.tools.io.api.dereference
+import com.atlassian.performance.tools.jiraactions.api.*
+import com.atlassian.performance.tools.jiraperformancetests.api.GroupableTest
 import com.atlassian.performance.tools.jiraperformancetests.api.ProvisioningPerformanceTest
+import com.atlassian.performance.tools.jirasoftwareactions.api.actions.ViewBacklogAction
 import com.atlassian.performance.tools.lib.LicenseOverridingDatabase
 import com.atlassian.performance.tools.lib.LogConfigurationFactory
 import com.atlassian.performance.tools.lib.infrastructure.ThrottlingMulticastVirtualUsersFormula
 import com.atlassian.performance.tools.lib.overrideDatabase
 import com.atlassian.performance.tools.lib.toExistingFile
+import com.atlassian.performance.tools.report.api.Criteria
+import com.atlassian.performance.tools.report.api.PerformanceCriteria
+import com.atlassian.performance.tools.report.api.judge.MaximumCoverageJudge
 import com.atlassian.performance.tools.virtualusers.api.TemporalRate
 import com.atlassian.performance.tools.virtualusers.api.VirtualUserLoad
 import com.atlassian.performance.tools.virtualusers.api.browsers.HeadlessChromeBrowser
 import com.atlassian.performance.tools.virtualusers.api.config.VirtualUserBehavior
 import com.atlassian.performance.tools.workspace.api.RootWorkspace
+import com.atlassian.performance.tools.workspace.api.TestWorkspace
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.logging.log4j.core.config.ConfigurationFactory
 import org.junit.BeforeClass
@@ -91,24 +99,6 @@ class VUConcurrentTest{
 
     private val root: RootWorkspace = RootWorkspace()
 
-    @Test
-    fun shouldHaveNoErrors() {
-        ConfigurationFactory.setConfigurationFactory(LogConfigurationFactory(workspace = root.currentTask))
-        val executor = Executors.newCachedThreadPool(
-            ThreadFactoryBuilder()
-                .setDaemon(true)
-                .setNameFormat("VU-concurrent-test-thread-%d")
-                .build()
-        )
-        val dcTest = dataCenter(
-            cohort = "VUConcurrent"
-        )
-
-        val futurResults = dcTest.runAsync(root.currentTask.isolateTest("001"), executor, virtualUsers)
-        val results = futurResults.get()
-        println(results.toString())
-    }
-
     private fun dataCenter(
         cohort: String
     ): ProvisioningPerformanceTest = ProvisioningPerformanceTest(
@@ -158,6 +148,47 @@ class VUConcurrentTest{
             )
         )
     )
+
+    @Test
+    fun shouldHaveNoErrors() {
+        val executor = Executors.newCachedThreadPool(
+            ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("VU-concurrent-test-thread-%d")
+                .build()
+        )
+        listOf(
+            StandaloneVUConcurrentTest()
+        )
+            .map { test ->
+                executor.submit {
+                    test.run(
+                        group = "VU test",
+                        workspace = root.currentTask
+                    )
+                }
+            }
+            .forEach { it.get() }
+    }
+
+    private inner class StandaloneVUConcurrentTest: GroupableTest("DataCenter") {
+        override fun run(workspace: TestWorkspace) {
+            val executor = Executors.newCachedThreadPool(
+                ThreadFactoryBuilder()
+                    .setDaemon(true)
+                    .setNameFormat("VU-concurrent-test-thread-%d")
+                    .build()
+            )
+            val dcTest = dataCenter(
+                cohort = "VUConcurrent"
+            )
+
+            val futurResults = dcTest.runAsync(root.currentTask.isolateTest("001"), executor, virtualUsers)
+            val results = futurResults.get()
+            println(results.toString())
+            executor.shutdownNow()
+        }
+    }
 
 }
 

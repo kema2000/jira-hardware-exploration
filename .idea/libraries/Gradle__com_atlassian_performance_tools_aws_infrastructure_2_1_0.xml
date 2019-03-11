@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.atlassian.performance.tools:aws-infrastructure:2.1.0">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.atlassian.performance.tools/aws-infrastructure/2.1.0/bdd675f9be86e7be5fb506398e7a289939d53e3c/aws-infrastructure-2.1.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.atlassian.performance.tools/aws-infrastructure/2.1.0/c5e90da588d1b85dca8d6e584e7ee06c95ae94f8/aws-infrastructure-2.1.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

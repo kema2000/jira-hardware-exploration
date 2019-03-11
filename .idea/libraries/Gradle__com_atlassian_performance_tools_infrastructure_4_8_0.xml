@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.atlassian.performance.tools:infrastructure:4.8.0">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.atlassian.performance.tools/infrastructure/4.8.0/88b71415b9cb6cebad4b79cc94412aebcbf6cacf/infrastructure-4.8.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.atlassian.performance.tools/infrastructure/4.8.0/c79ef684365b5a6af6abbe597ba34cb9367c6c19/infrastructure-4.8.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

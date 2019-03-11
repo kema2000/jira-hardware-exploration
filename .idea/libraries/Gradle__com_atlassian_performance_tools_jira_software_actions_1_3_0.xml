@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.atlassian.performance.tools:jira-software-actions:1.3.0">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/atlassian/performance/tools/jira-software-actions/1.3.0/jira-software-actions-1.3.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.atlassian.performance.tools/jira-software-actions/1.3.0/ec9ca6a561e9da57fc5dafcb01132996aa53174b/jira-software-actions-1.3.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
