@@ -26,10 +26,11 @@ object IntegrationTestRuntime {
     init {
         ConfigurationFactory.setConfigurationFactory(LogConfigurationFactory(workspace))
         logContext = LogManager.getContext()
+        var roleArn: String = System.getenv("atl_bamboo_assumrole") ?: "arn:aws:iam::695067801333:role/server-gdn-bamboo"
         aws = Aws(
             credentialsProvider = AWSCredentialsProviderChain(
                 STSAssumeRoleSessionCredentialsProvider.Builder(
-                    "arn:aws:iam::081862267333:role/server-gdn-bamboo",
+                    roleArn,
                     UUID.randomUUID().toString()).build(),
                 DefaultAWSCredentialsProviderChain()
             ),
