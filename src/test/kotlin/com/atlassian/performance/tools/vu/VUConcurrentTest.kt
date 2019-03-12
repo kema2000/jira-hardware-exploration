@@ -11,33 +11,29 @@ import com.atlassian.performance.tools.aws.api.StorageLocation
 import com.atlassian.performance.tools.aws.api.TextCapacityMediator
 import com.atlassian.performance.tools.awsinfrastructure.api.DatasetCatalogue
 import com.atlassian.performance.tools.awsinfrastructure.api.InfrastructureFormula
+import com.atlassian.performance.tools.awsinfrastructure.api.hardware.C4EightExtraLargeElastic
 import com.atlassian.performance.tools.awsinfrastructure.api.hardware.EbsEc2Instance
 import com.atlassian.performance.tools.awsinfrastructure.api.jira.DataCenterFormula
+import com.atlassian.performance.tools.awsinfrastructure.api.jira.JiraFormula
+import com.atlassian.performance.tools.awsinfrastructure.api.jira.StandaloneFormula
 import com.atlassian.performance.tools.awsinfrastructure.api.loadbalancer.ElasticLoadBalancerFormula
 import com.atlassian.performance.tools.awsinfrastructure.api.storage.JiraSoftwareStorage
 import com.atlassian.performance.tools.awsinfrastructure.api.virtualusers.MulticastVirtualUsersFormula
 import com.atlassian.performance.tools.hardware.ApplicationScale
 import com.atlassian.performance.tools.hardware.vu.VuUserCreationScenario
 import com.atlassian.performance.tools.infrastructure.api.app.Apps
-import com.atlassian.performance.tools.infrastructure.api.app.MavenDownloadedApps
 import com.atlassian.performance.tools.infrastructure.api.browser.chromium.Chromium69
 import com.atlassian.performance.tools.infrastructure.api.jira.JiraLaunchTimeouts
 import com.atlassian.performance.tools.infrastructure.api.jira.JiraNodeConfig
 import com.atlassian.performance.tools.infrastructure.api.profiler.AsyncProfiler
 import com.atlassian.performance.tools.infrastructure.api.splunk.DisabledSplunkForwarder
 import com.atlassian.performance.tools.io.api.dereference
-import com.atlassian.performance.tools.jiraactions.api.*
 import com.atlassian.performance.tools.jiraperformancetests.api.GroupableTest
 import com.atlassian.performance.tools.jiraperformancetests.api.ProvisioningPerformanceTest
-import com.atlassian.performance.tools.jirasoftwareactions.api.actions.ViewBacklogAction
 import com.atlassian.performance.tools.lib.LicenseOverridingDatabase
-import com.atlassian.performance.tools.lib.LogConfigurationFactory
 import com.atlassian.performance.tools.lib.infrastructure.ThrottlingMulticastVirtualUsersFormula
 import com.atlassian.performance.tools.lib.overrideDatabase
 import com.atlassian.performance.tools.lib.toExistingFile
-import com.atlassian.performance.tools.report.api.Criteria
-import com.atlassian.performance.tools.report.api.PerformanceCriteria
-import com.atlassian.performance.tools.report.api.judge.MaximumCoverageJudge
 import com.atlassian.performance.tools.virtualusers.api.TemporalRate
 import com.atlassian.performance.tools.virtualusers.api.VirtualUserLoad
 import com.atlassian.performance.tools.virtualusers.api.browsers.HeadlessChromeBrowser
@@ -45,8 +41,6 @@ import com.atlassian.performance.tools.virtualusers.api.config.VirtualUserBehavi
 import com.atlassian.performance.tools.workspace.api.RootWorkspace
 import com.atlassian.performance.tools.workspace.api.TestWorkspace
 import com.google.common.util.concurrent.ThreadFactoryBuilder
-import org.apache.logging.log4j.core.config.ConfigurationFactory
-import org.junit.BeforeClass
 import org.junit.Test
 import java.net.URI
 import java.nio.file.Paths
@@ -99,33 +93,16 @@ class VUConcurrentTest{
 
     private val root: RootWorkspace = RootWorkspace()
 
-    private fun dataCenter(
-        cohort: String
+
+    private fun createPtestInstance(
+        cohort: String, jiraFormula: JiraFormula
     ): ProvisioningPerformanceTest = ProvisioningPerformanceTest(
         cohort = cohort,
         infrastructureFormula = InfrastructureFormula(
             investment = Investment(
                 useCase = "Test VU concurrent testing",
                 lifespan = Duration.ofHours(2)),
-            jiraFormula = DataCenterFormula(
-                apps = Apps(emptyList()),
-                application = JiraSoftwareStorage("7.13.0"),
-                jiraHomeSource = scale.dataset.jiraHomeSource,
-                database = scale.dataset.database,
-                configs = listOf(
-                    JiraNodeConfig.Builder()
-                        .name("jira-node-0")
-                        .profiler(AsyncProfiler())
-                        .launchTimeouts(
-                            JiraLaunchTimeouts.Builder()
-                                .initTimeout(Duration.ofMinutes(7))
-                                .build()
-                        )
-                        .build())
-                ,
-                loadBalancerFormula = ElasticLoadBalancerFormula(),
-                computer = EbsEc2Instance(InstanceType.C52xlarge)
-            ),
+            jiraFormula = jiraFormula,
             virtualUsersFormula = ThrottlingMulticastVirtualUsersFormula(
                 MulticastVirtualUsersFormula(
                     nodes = scale.vuNodes,
@@ -158,7 +135,7 @@ class VUConcurrentTest{
                 .build()
         )
         listOf(
-            StandaloneVUConcurrentTest()
+            DatacenterVUConcurrentTest()
         )
             .map { test ->
                 executor.submit {
@@ -171,7 +148,7 @@ class VUConcurrentTest{
             .forEach { it.get() }
     }
 
-    private inner class StandaloneVUConcurrentTest: GroupableTest("DataCenter") {
+    private inner class DatacenterVUConcurrentTest: GroupableTest("DataCenter") {
         override fun run(workspace: TestWorkspace) {
             val executor = Executors.newCachedThreadPool(
                 ThreadFactoryBuilder()
@@ -179,9 +156,56 @@ class VUConcurrentTest{
                     .setNameFormat("VU-concurrent-test-thread-%d")
                     .build()
             )
-            val dcTest = dataCenter(
-                cohort = "VUConcurrent"
+            val dcTest = createPtestInstance(
+                cohort = "VUConcurrent",
+                jiraFormula = DataCenterFormula(
+                    apps = Apps(emptyList()),
+                    application = JiraSoftwareStorage("7.13.0"),
+                    jiraHomeSource = scale.dataset.jiraHomeSource,
+                    database = scale.dataset.database,
+                    configs = listOf(
+                        JiraNodeConfig.Builder()
+                            .name("jira-node-0")
+                            .profiler(AsyncProfiler())
+                            .launchTimeouts(
+                                JiraLaunchTimeouts.Builder()
+                                    .initTimeout(Duration.ofMinutes(7))
+                                    .build()
+                            )
+                            .build())
+                    ,
+                    loadBalancerFormula = ElasticLoadBalancerFormula(),
+                    computer = EbsEc2Instance(InstanceType.C52xlarge)
+                )
             )
+
+            val futurResults = dcTest.runAsync(root.currentTask.isolateTest("001"), executor, virtualUsers)
+            val results = futurResults.get()
+            println(results.toString())
+            executor.shutdownNow()
+        }
+    }
+
+    private inner class StandaloneVUConcurrentTest: GroupableTest("Standalone") {
+        override fun run(workspace: TestWorkspace) {
+            val executor = Executors.newCachedThreadPool(
+                ThreadFactoryBuilder()
+                    .setDaemon(true)
+                    .setNameFormat("VU-concurrent-test-thread-%d")
+                    .build()
+            )
+            val dcTest = createPtestInstance(
+                cohort = "VUConcurrent",
+                jiraFormula = StandaloneFormula(
+                    apps = Apps(emptyList()),
+                    application = JiraSoftwareStorage("7.13.0"),
+                    jiraHomeSource = scale.dataset.jiraHomeSource,
+                    database = scale.dataset.database,
+                    config = JiraNodeConfig.Builder()
+                        .profiler(AsyncProfiler())
+                        .build(),
+                    computer = C4EightExtraLargeElastic()
+                ))
 
             val futurResults = dcTest.runAsync(root.currentTask.isolateTest("001"), executor, virtualUsers)
             val results = futurResults.get()
