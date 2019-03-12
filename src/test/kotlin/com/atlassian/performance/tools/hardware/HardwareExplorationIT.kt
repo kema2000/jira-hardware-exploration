@@ -14,10 +14,12 @@ import com.atlassian.performance.tools.virtualusers.api.TemporalRate
 import com.atlassian.performance.tools.virtualusers.api.VirtualUserLoad
 import com.atlassian.performance.tools.workspace.api.TestWorkspace
 import org.apache.logging.log4j.Logger
+import org.junit.Before
 import org.junit.Test
 import java.net.URI
 import java.nio.file.Paths
 import java.time.Duration
+import java.util.concurrent.Executors
 
 class HardwareExplorationIT {
 
@@ -115,4 +117,20 @@ class HardwareExplorationIT {
             task = IntegrationTestRuntime.workspace
         ).exploreHardware()
     }
+
+    @Before
+    fun setupHeartBeat() {
+
+        if(System.getenv("bamboo_buildResultKey") != null){
+            val pool = Executors.newFixedThreadPool(1)
+            pool.submit{
+                while (true){
+                    Thread.sleep(120000)
+                    println("JPT heart beat")
+                }
+            }
+            pool.shutdown()
+        }
+    }
+
 }

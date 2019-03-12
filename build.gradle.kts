@@ -48,6 +48,11 @@ task<Test>("exploreHardware").apply {
 task<Test>("cleanUpAfterBamboo").apply {
     outputs.upToDateWhen{false}
     include("**/BambooCleanupIT.class")
+    testLogging {
+        if (System.getenv("bamboo_buildResultKey") != null) {
+            showStandardStreams = true
+        }
+    }
 }
 
 dependencies {

@@ -3,7 +3,9 @@ package com.atlassian.performance.tools.hardware
 import com.atlassian.performance.tools.aws.api.ProvisionedStack
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import org.junit.Before
 import org.junit.Test
+import java.util.concurrent.Executors
 
 class BambooCleanupIT {
 
@@ -30,4 +32,20 @@ class BambooCleanupIT {
             logger.info("No stacks to delete")
         }
     }
+
+    @Before
+    fun setupHeartBeat() {
+
+        if(System.getenv("bamboo_buildResultKey") != null){
+            val pool = Executors.newFixedThreadPool(1)
+            pool.submit{
+                while (true){
+                    Thread.sleep(120000)
+                    println("JPT heart beat")
+                }
+            }
+            pool.shutdown()
+        }
+    }
+
 }
