@@ -68,6 +68,7 @@ class HardwareExploration(
         try {
             exploreHardwareInParallel(space, explorationExecutor, awsExecutor)
         } finally {
+            IntegrationTestRuntime.uploadResult()
             explorationExecutor.shutdown()
             awsExecutor.shutdown()
             explorationExecutor.awaitTermination(70, TimeUnit.MINUTES)

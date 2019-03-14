@@ -5,6 +5,7 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider
 import com.amazonaws.regions.Regions
 import com.atlassian.performance.tools.aws.api.Aws
+import com.atlassian.performance.tools.aws.api.Storage
 import com.atlassian.performance.tools.aws.api.TextCapacityMediator
 import com.atlassian.performance.tools.lib.LogConfigurationFactory
 import com.atlassian.performance.tools.workspace.api.RootWorkspace
@@ -39,5 +40,26 @@ object IntegrationTestRuntime {
             capacity = TextCapacityMediator(Regions.EU_WEST_1),
             batchingCloudformationRefreshPeriod = Duration.ofSeconds(20)
         )
+        initWorkSpace()
     }
+
+    fun initWorkSpace(){
+        //download the result
+        if(System.getenv("bamboo_buildResultKey") != null){
+            println("Downloading result from s3 -- STARTED")
+            Storage(aws.s3, prefix="QUICK-94-workspace",
+                bucketName = "temp-quicksilver").download(workspace.directory)
+            println("Downloading result from s3 -- FINISHED")
+        }
+    }
+
+    fun uploadResult(){
+        if(System.getenv("bamboo_buildResultKey") != null){
+            println("Uploading result to s3 -- STARTED")
+            Storage(aws.s3, prefix="QUICK-94-workspace",
+                bucketName = "temp-quicksilver").upload(workspace.directory.toFile())
+            println("Uploading result to s3 -- Finished")
+        }
+    }
+
 }
