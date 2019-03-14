@@ -25,7 +25,11 @@ internal class LicenseOverridingDatabase(
         ssh: SshConnection
     ) {
         database.start(jira, ssh)
-        val licenseTable = "jiradb.productlicense"
+        val licenseTable =when(database.getDbType())
+        {
+            DbType.MySql -> "jiradb.productlicense"
+            DbType.Postgres -> "productlicense"
+        }
         var client : SshSqlClient
         when(database.getDbType()){
             DbType.MySql -> client = SshMysqlClient()
