@@ -55,7 +55,7 @@ task<Test>("cleanUpAfterBamboo").apply {
     }
 }
 
-task<Test>("testPostgress").apply {
+task<Test>("testPostgres").apply {
     outputs.upToDateWhen{false}
     description = "Try Postgres DB for for Jira."
     include("**/JiraInstanceTest.class")
