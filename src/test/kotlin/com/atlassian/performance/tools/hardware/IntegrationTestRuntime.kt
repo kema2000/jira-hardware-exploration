@@ -45,20 +45,30 @@ object IntegrationTestRuntime {
 
     fun initWorkSpace(){
         //download the result
-        if(System.getenv("bamboo_buildResultKey") != null){
-            println("Downloading result from s3 -- STARTED")
-            Storage(aws.s3, prefix="QUICK-94-workspace",
-                bucketName = "temp-quicksilver").download(workspace.directory)
-            println("Downloading result from s3 -- FINISHED")
+        try{
+            if(System.getenv("bamboo_buildResultKey") != null){
+                println("Downloading result from s3 -- STARTED")
+                Storage(aws.s3, prefix="QUICK-94-workspace",
+                    bucketName = "temp-quicksilver").download(workspace.directory)
+                println("Downloading result from s3 -- FINISHED")
+            }
+        } catch(e: Exception){
+            //do nothing
+            println("Downloading result from s3 -- Failed : $e")
         }
     }
 
     fun uploadResult(){
-        if(System.getenv("bamboo_buildResultKey") != null){
-            println("Uploading result to s3 -- STARTED")
-            Storage(aws.s3, prefix="QUICK-94-workspace",
-                bucketName = "temp-quicksilver").upload(workspace.directory.toFile())
-            println("Uploading result to s3 -- Finished")
+        try {
+            if(System.getenv("bamboo_buildResultKey") != null){
+                println("Uploading result to s3 -- STARTED")
+                Storage(aws.s3, prefix="QUICK-94-workspace",
+                    bucketName = "temp-quicksilver").upload(workspace.directory.toFile())
+                println("Uploading result to s3 -- Finished")
+            }
+        } catch(e: Exception){
+            //do nothing
+            println("Uploading result to s3 -- Failed : $e")
         }
     }
 
