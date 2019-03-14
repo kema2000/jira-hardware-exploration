@@ -52,7 +52,6 @@ class HardwareExploration(
         .seed(78432)
         .diagnosticsLimit(32)
         .browser(HeadlessChromeBrowser::class.java)
-        .createUsers(true)
         .build()
     private val awsParallelism = 6
     private val results = ConcurrentHashMap<Hardware, Future<HardwareExplorationResult>>()
@@ -68,7 +67,6 @@ class HardwareExploration(
         try {
             exploreHardwareInParallel(space, explorationExecutor, awsExecutor)
         } finally {
-            IntegrationTestRuntime.uploadResult()
             explorationExecutor.shutdown()
             awsExecutor.shutdown()
             explorationExecutor.awaitTermination(70, TimeUnit.MINUTES)

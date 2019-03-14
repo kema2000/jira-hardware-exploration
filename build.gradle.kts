@@ -1,4 +1,10 @@
+import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.bundling.Jar
+import org.gradle.api.tasks.testing.Test
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.time.Instant
+import java.io.File
 import java.net.URI
 
 buildscript {
@@ -30,7 +36,6 @@ tasks.withType(KotlinCompile::class).forEach {
 }
 
 task<Test>("exploreHardware").apply {
-    outputs.upToDateWhen{false}
     description = "Explores performance of different hardware setups for Jira."
     include("**/HardwareExplorationIT.class")
     val shadowJarTask = tasks.getByPath(":virtual-users:shadowJar")
@@ -38,11 +43,6 @@ task<Test>("exploreHardware").apply {
     systemProperty("jpt.virtual-users.shadow-jar", shadowJarTask.outputs.files.files.first())
     failFast = true
     maxHeapSize = "8g"
-    testLogging {
-        if (System.getenv("bamboo_buildResultKey") != null) {
-            showStandardStreams = true
-        }
-    }
 }
 
 task<Test>("cleanUpAfterBamboo").apply {
@@ -55,13 +55,20 @@ task<Test>("cleanUpAfterBamboo").apply {
     }
 }
 
+task<Test>("testPostgress").apply {
+    outputs.upToDateWhen{false}
+    description = "Try Postgres DB for for Jira."
+    include("**/JiraInstanceTest.class")
+    failFast = true
+}
+
 dependencies {
     testCompile(project(":virtual-users"))
     testCompile("com.atlassian.performance.tools:jira-performance-tests:[3.0.0,4.0.0)")
-    testCompile("com.atlassian.performance.tools:infrastructure:[4.6.0,5.0.0)")
+    testCompile("com.atlassian.performance.tools:infrastructure:4.9.0-SNAPSHOT")
     testCompile("com.atlassian.performance.tools:virtual-users:[3.6.1,4.0.0)")
     testCompile("com.atlassian.performance.tools:jira-software-actions:[1.1.0,2.0.0]")
-    testCompile("com.atlassian.performance.tools:aws-infrastructure:2.1.0") // workaround for JPERF-357
+    testCompile("com.atlassian.performance.tools:aws-infrastructure:2.7.0-SNAPSHOT") // workaround for JPERF-357
     testCompile("com.atlassian.performance.tools:aws-resources:[1.3.4,2.0.0)")
     testCompile("com.atlassian.performance.tools:concurrency:[1.0.0,2.0.0)")
     testCompile("org.apache.commons:commons-csv:1.4")

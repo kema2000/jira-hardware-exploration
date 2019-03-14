@@ -1,6 +1,7 @@
 package com.atlassian.performance.tools.lib
 
 import com.atlassian.performance.tools.infrastructure.api.database.Database
+import com.atlassian.performance.tools.infrastructure.api.database.DbType
 import com.atlassian.performance.tools.ssh.api.SshConnection
 import org.apache.logging.log4j.LogManager
 import java.net.URI
@@ -9,6 +10,9 @@ internal class LicenseOverridingDatabase(
     private val database: Database,
     private val licenses: List<String>
 ) : Database {
+    override fun getDbType(): DbType {
+        return database.getDbType()
+    }
 
     private val logger = LogManager.getLogger(this::class.java)
 
@@ -22,12 +26,17 @@ internal class LicenseOverridingDatabase(
     ) {
         database.start(jira, ssh)
         val licenseTable = "jiradb.productlicense"
-        val mysql = SshMysqlClient()
-        mysql.runSql(ssh, "DELETE FROM $licenseTable;")
+        var client : SshSqlClient
+        when(database.getDbType()){
+            DbType.MySql -> client = SshMysqlClient()
+            DbType.Postgres -> client = SshPostgresClient()
+            else -> throw Exception("Unknow DB : ${database.getDbType()}")
+        }
+        client.runSql(ssh, "DELETE FROM $licenseTable;")
         logger.info("Licenses nuked")
         licenses.forEachIndexed { index, license ->
             val flattenedLicense = license.lines().joinToString(separator = "") { it.trim() }
-            mysql.runSql(
+            client.runSql(
                 ssh = ssh,
                 sql = "INSERT INTO $licenseTable VALUES ($index, \"$flattenedLicense\");"
             )

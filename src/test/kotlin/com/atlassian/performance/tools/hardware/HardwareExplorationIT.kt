@@ -1,29 +1,40 @@
 package com.atlassian.performance.tools.hardware
 
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
 import com.amazonaws.regions.Regions.EU_WEST_1
 import com.amazonaws.services.ec2.model.InstanceType.*
+import com.atlassian.performance.tools.aws.api.Aws
 import com.atlassian.performance.tools.aws.api.Investment
 import com.atlassian.performance.tools.aws.api.StorageLocation
+import com.atlassian.performance.tools.aws.api.TextCapacityMediator
+import com.atlassian.performance.tools.awsinfrastructure.api.CustomDatasetSource
 import com.atlassian.performance.tools.awsinfrastructure.api.DatasetCatalogue
-import com.atlassian.performance.tools.hardware.IntegrationTestRuntime.logContext
-import com.atlassian.performance.tools.hardware.IntegrationTestRuntime.taskName
+import com.atlassian.performance.tools.infrastructure.api.database.DbType
+import com.atlassian.performance.tools.infrastructure.api.dataset.Dataset
+import com.atlassian.performance.tools.infrastructure.api.dataset.DatasetPackage
+import com.atlassian.performance.tools.infrastructure.api.dataset.FileArchiver
+import com.atlassian.performance.tools.infrastructure.api.dataset.HttpDatasetPackage
+import com.atlassian.performance.tools.infrastructure.api.jira.JiraHomePackage
 import com.atlassian.performance.tools.lib.LicenseOverridingDatabase
+import com.atlassian.performance.tools.lib.LogConfigurationFactory
 import com.atlassian.performance.tools.lib.overrideDatabase
 import com.atlassian.performance.tools.lib.toExistingFile
 import com.atlassian.performance.tools.virtualusers.api.TemporalRate
 import com.atlassian.performance.tools.virtualusers.api.VirtualUserLoad
+import com.atlassian.performance.tools.workspace.api.RootWorkspace
 import com.atlassian.performance.tools.workspace.api.TestWorkspace
+import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import org.junit.Before
+import org.apache.logging.log4j.core.config.ConfigurationFactory
+import org.junit.BeforeClass
 import org.junit.Test
 import java.net.URI
 import java.nio.file.Paths
 import java.time.Duration
-import java.util.concurrent.Executors
 
 class HardwareExplorationIT {
 
-    private val logger: Logger = logContext.getLogger(this::class.java.canonicalName)
+    private val logger: Logger = LogManager.getLogger(this::class.java)
     private val oneMillionIssues = DatasetCatalogue().custom(
         location = StorageLocation(
             uri = URI("s3://jpt-custom-datasets-storage-a008820-datasetbucket-1sjxdtrv5hdhj/")
@@ -32,7 +43,8 @@ class HardwareExplorationIT {
         ),
         label = "1M issues",
         databaseDownload = Duration.ofMinutes(20),
-        jiraHomeDownload = Duration.ofMinutes(20)
+        jiraHomeDownload = Duration.ofMinutes(20),
+        dbType = DbType.Postgres
     ).overrideDatabase { originalDataset ->
         val localLicense = Paths.get("jira-license.txt")
         LicenseOverridingDatabase(
@@ -113,24 +125,26 @@ class HardwareExplorationIT {
                 useCase = "Test hardware recommendations - $taskName",
                 lifespan = Duration.ofHours(2)
             ),
-            aws = IntegrationTestRuntime.aws,
-            task = IntegrationTestRuntime.workspace
+            aws = Aws(
+                credentialsProvider = DefaultAWSCredentialsProviderChain(),
+                region = EU_WEST_1,
+                regionsWithHousekeeping = listOf(EU_WEST_1),
+                capacity = TextCapacityMediator(EU_WEST_1),
+                batchingCloudformationRefreshPeriod = Duration.ofSeconds(20)
+            ),
+            task = workspace
         ).exploreHardware()
     }
 
-    @Before
-    fun setupHeartBeat() {
 
-        if(System.getenv("bamboo_buildResultKey") != null){
-            val pool = Executors.newFixedThreadPool(1)
-            pool.submit{
-                while (true){
-                    Thread.sleep(120000)
-                    println("JPT heart beat")
-                }
-            }
-            pool.shutdown()
+    companion object {
+        const val taskName = "QUICK-54-controlled-load-3"
+        private val workspace = RootWorkspace(Paths.get("build")).isolateTask(taskName)
+
+        @BeforeClass
+        @JvmStatic
+        fun setUp() {
+            ConfigurationFactory.setConfigurationFactory(LogConfigurationFactory(workspace))
         }
     }
-
 }
