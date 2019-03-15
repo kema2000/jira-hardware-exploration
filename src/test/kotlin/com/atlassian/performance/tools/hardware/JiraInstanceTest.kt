@@ -16,6 +16,7 @@ import com.atlassian.performance.tools.awsinfrastructure.api.storage.JiraSoftwar
 import com.atlassian.performance.tools.awsinfrastructure.api.virtualusers.AbsentVirtualUsersFormula
 import com.atlassian.performance.tools.infrastructure.api.app.Apps
 import com.atlassian.performance.tools.infrastructure.api.database.DbType
+import com.atlassian.performance.tools.infrastructure.api.distribution.PublicJiraSoftwareDistribution
 import com.atlassian.performance.tools.infrastructure.api.jira.JiraLaunchTimeouts
 import com.atlassian.performance.tools.infrastructure.api.jira.JiraNodeConfig
 import com.atlassian.performance.tools.infrastructure.api.jvm.EnabledJvmDebug
@@ -101,32 +102,43 @@ class JiraInstanceTest {
                 useCase = "Provision an ad hoc Jira Software environment",
                 lifespan = lifespan
             ),
-//            jiraFormula = DataCenterFormula(
-//                apps = Apps(emptyList()),
-//                application = JiraSoftwareStorage("7.13.0"),
-//                jiraHomeSource = dataset.jiraHomeSource,
-//                database = dataset.database,
-//                configs = listOf(
-//                    JiraNodeConfig.Builder()
-//                        .name("jira-node-1")
-//                        .build()
-//                ),
-//                loadBalancerFormula = ElasticLoadBalancerFormula(),
-//                computer = EbsEc2Instance(InstanceType.C4Large)
-//            ),
-            jiraFormula = StandaloneFormula(
-                apps = Apps(emptyList()),
-                application = JiraSoftwareStorage(jiraVersion),
-                jiraHomeSource = dataset.jiraHomeSource,
+            jiraFormula = StandaloneFormula.Builder(
                 database = dataset.database,
-                config = JiraNodeConfig.Builder().build(),
-                computer = C5NineExtraLargeEphemeral()
-            ),
+                jiraHomeSource = dataset.jiraHomeSource,
+                productDistribution = PublicJiraSoftwareDistribution(jiraVersion))
+                .computer(C5NineExtraLargeEphemeral())
+                .databaseComputer(C4EightExtraLargeElastic())
+                .adminPwd("MasterPassword18")
+                .build(),
             virtualUsersFormula = AbsentVirtualUsersFormula(),
             aws = aws
         ).provision(testWorkspace.directory).infrastructure
         CustomDatasetSourceRegistry(rootWorkspace).register(infrastructure)
+    }
 
+    @Test
+    fun shouldProvisionAnDcInstance() {
+        val jiraVersion = "7.13.0"
+
+        val dataset = sevenMillionIssues
+        val lifespan = Duration.ofHours(8)
+        val infrastructure = InfrastructureFormula(
+            investment = Investment(
+                useCase = "Provision an ad hoc Jira Software environment",
+                lifespan = lifespan
+            ),
+            jiraFormula = DataCenterFormula.Builder(
+                database = dataset.database,
+                jiraHomeSource = dataset.jiraHomeSource,
+                productDistribution = PublicJiraSoftwareDistribution(jiraVersion))
+                .computer(C5NineExtraLargeEphemeral())
+                .configs(listOf(JiraNodeConfig.Builder().name("jira-node-1").build()))
+                .adminPwd("MasterPassword18")
+                .build(),
+            virtualUsersFormula = AbsentVirtualUsersFormula(),
+            aws = aws
+        ).provision(testWorkspace.directory).infrastructure
+        CustomDatasetSourceRegistry(rootWorkspace).register(infrastructure)
     }
 
 }

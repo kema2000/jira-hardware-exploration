@@ -40,11 +40,20 @@ internal class LicenseOverridingDatabase(
         logger.info("Licenses nuked")
         licenses.forEachIndexed { index, license ->
             val flattenedLicense = license.lines().joinToString(separator = "") { it.trim() }
-            client.runSql(
-                ssh = ssh,
-                sql = "INSERT INTO $licenseTable VALUES ($index, \"$flattenedLicense\");"
-            )
+
+            when(database.getDbType())
+            {
+                DbType.MySql -> client.runSql(
+                    ssh = ssh,
+                    sql = "INSERT INTO $licenseTable VALUES ($index, \"$flattenedLicense\");"
+                )
+                DbType.Postgres -> client.runSql(
+                    ssh = ssh,
+                    sql = "INSERT INTO $licenseTable (id, license) VALUES ($index, '$flattenedLicense');"
+                )
+            }
             logger.info("Added license: ${license.substring(0..8)}...")
         }
     }
+
 }
