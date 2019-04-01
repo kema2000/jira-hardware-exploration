@@ -60,12 +60,12 @@ class JiraInstanceTest {
                 database = dataset.database,
                 jiraHomeSource = dataset.jiraHomeSource,
                 productDistribution = PublicJiraSoftwareDistribution(jiraVersion))
-                .computer(C5NineExtraLargeEphemeral())
-                .databaseComputer(C4EightExtraLargeElastic())
+                .computer(EbsEc2Instance(InstanceType.M44xlarge).withVolumeSize(300))
+                .databaseComputer(EbsEc2Instance(InstanceType.M44xlarge).withVolumeSize(300))
                 .adminPwd("MasterPassword18")
                 .build(),
             virtualUsersFormula = AbsentVirtualUsersFormula(),
-            aws = aws
+            aws = AtlassianAccount.DEVELOPMENT_IRELAND.aws
         ).provision(testWorkspace.directory).infrastructure
         CustomDatasetSourceRegistry(rootWorkspace).register(infrastructure)
     }
@@ -85,7 +85,8 @@ class JiraInstanceTest {
                 database = dataset.database,
                 jiraHomeSource = dataset.jiraHomeSource,
                 productDistribution = PublicJiraSoftwareDistribution(jiraVersion))
-                .computer(C5NineExtraLargeEphemeral())
+                .computer(EbsEc2Instance(InstanceType.M44xlarge).withVolumeSize(200))
+                .databaseComputer(EbsEc2Instance(InstanceType.M44xlarge).withVolumeSize(200))
                 .adminPwd("MasterPassword18")
                 .build(),
             virtualUsersFormula = AbsentVirtualUsersFormula(),

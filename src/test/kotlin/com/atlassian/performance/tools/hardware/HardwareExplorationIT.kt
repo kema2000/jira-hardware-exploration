@@ -38,28 +38,27 @@ import java.time.Duration
 class HardwareExplorationIT {
 
     private val logger: Logger = LogManager.getLogger(this::class.java)
-//    private val oneMillionIssues = DatasetCatalogue().custom(
-//        location = StorageLocation(
-//            uri = URI("s3://jpt-custom-datasets-storage-a008820-datasetbucket-1sjxdtrv5hdhj/")
-//                .resolve("a12fc4c5-3973-41f0-bf56-ede393677028"),
-//            region = EU_WEST_1
-//        ),
-//        label = "1M issues",
-//        databaseDownload = Duration.ofMinutes(20),
-//        jiraHomeDownload = Duration.ofMinutes(20),
-//        dbType = DbType.Postgres
-//    ).overrideDatabase { originalDataset ->
-//        val localLicense = Paths.get("jira-license.txt")
-//        LicenseOverridingDatabase(
-//            originalDataset.database,
-//            listOf(
-//                localLicense
-//                    .toExistingFile()
-//                    ?.readText()
-//                    ?: throw  Exception("Put a Jira license to ${localLicense.toAbsolutePath()}")
-//            ))
-//    }
-
+    private val oneMillionIssues = DatasetCatalogue().custom(
+        location = StorageLocation(
+            uri = URI("s3://jpt-custom-datasets-storage-a008820-datasetbucket-1sjxdtrv5hdhj/")
+                .resolve("a12fc4c5-3973-41f0-bf56-ede393677028"),
+            region = EU_WEST_1
+        ),
+        label = "1M issues",
+        databaseDownload = Duration.ofMinutes(20),
+        jiraHomeDownload = Duration.ofMinutes(20),
+        dbType = DbType.Postgres
+    ).overrideDatabase { originalDataset ->
+        val localLicense = Paths.get("jira-license.txt")
+        LicenseOverridingDatabase(
+            originalDataset.database,
+            listOf(
+                localLicense
+                    .toExistingFile()
+                    ?.readText()
+                    ?: throw  Exception("Put a Jira license to ${localLicense.toAbsolutePath()}")
+            ))
+    }
 
     val location = StorageLocation(
         //s3://jpt-custom-postgres-xl/dataset-7m/jirahome.tar.bz2
@@ -83,7 +82,6 @@ class HardwareExplorationIT {
     val sevenMillionIssues = DatasetCatalogue().custom(
         location = location,
         label = "7M issues",
-//        databaseDownload = Duration.ofMinutes(40),
         jiraHomeDownload = Duration.ofMinutes(40),
         databse = databse
     ).overrideDatabase { originalDataset ->

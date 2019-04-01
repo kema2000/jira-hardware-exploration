@@ -17,18 +17,20 @@ import java.time.Instant
 
 class CustomSetup(
     private val jira: WebJira,
-    private val meter: ActionMeter
+    private val meter: ActionMeter,
+    private val disableAnalytic: Boolean = false
 ) : Action {
     private val logger = LogManager.getLogger(this::class.java)
 
     private val driver: WebDriver = jira.driver
-    private val access: AdminAccess = AdminAccess(driver, jira, "admin")
+    private val access: AdminAccess = AdminAccess(driver, jira, jira.adminPassword)
     private val switchLocator = By.id("rte-switch")
 
     override fun run() {
         meter.measure(SET_UP) {
             jira.navigateTo("secure/admin/ConfigureRTE!default.jspa")
             disable()
+            if(disableAnalytic) disableAnalytic()
         }
     }
 
@@ -76,6 +78,28 @@ class CustomSetup(
         } else {
             logger.info("RTE is already disabled")
         }
+    }
+
+    private fun disableAnalytic() {
+        jira.navigateTo("plugins/servlet/analytics/configuration")
+        val prompted = access.isPrompted()
+        if (prompted) {
+            access.gain()
+        }
+
+        val switchAnalyticLocator = By.id("disable-analytics")
+        val btnAnalyticLocator = By.id("analytics-submit")
+        val radioAe = driver.findElement(switchAnalyticLocator)
+        val btnAe = driver.findElement(btnAnalyticLocator)
+        driver.wait(ofSeconds(5), elementToBeClickable(radioAe))
+        radioAe.click()
+        driver.wait(ofSeconds(15), elementToBeClickable(btnAe))
+        btnAe.click()
+
+        if (prompted) {
+            access.drop()
+        }
+
     }
 
     private fun getSwitchInput() = driver.wait(ofSeconds(5), elementToBeClickable(By.id("rte-switch-input")))
