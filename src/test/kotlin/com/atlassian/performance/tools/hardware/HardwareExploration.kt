@@ -12,6 +12,7 @@ import com.atlassian.performance.tools.awsinfrastructure.api.virtualusers.Multic
 import com.atlassian.performance.tools.hardware.vu.CustomScenario
 import com.atlassian.performance.tools.infrastructure.api.app.Apps
 import com.atlassian.performance.tools.infrastructure.api.browser.chromium.Chromium69
+import com.atlassian.performance.tools.infrastructure.api.distribution.PublicJiraSoftwareDistribution
 import com.atlassian.performance.tools.infrastructure.api.jira.JiraLaunchTimeouts
 import com.atlassian.performance.tools.infrastructure.api.jira.JiraNodeConfig
 import com.atlassian.performance.tools.infrastructure.api.profiler.AsyncProfiler
@@ -52,6 +53,8 @@ class HardwareExploration(
         .seed(78432)
         .diagnosticsLimit(32)
         .browser(HeadlessChromeBrowser::class.java)
+        .createUsers(true)
+        .adminPassword(jiraAdminPassword)
         .build()
     private val awsParallelism = 6
     private val results = ConcurrentHashMap<Hardware, Future<HardwareExplorationResult>>()
@@ -377,12 +380,13 @@ class HardwareExploration(
         cohort = cohort,
         infrastructureFormula = InfrastructureFormula(
             investment = investment,
-            jiraFormula = DataCenterFormula(
-                apps = Apps(emptyList()),
-                application = JiraSoftwareStorage("7.13.0"),
-                jiraHomeSource = scale.dataset.jiraHomeSource,
+            jiraFormula = DataCenterFormula.Builder(
                 database = scale.dataset.database,
-                configs = (1..hardware.nodeCount).map {
+                jiraHomeSource = scale.dataset.jiraHomeSource,
+                productDistribution = PublicJiraSoftwareDistribution("7.13.0"))
+                .computer(EbsEc2Instance(hardware.instanceType))
+                .databaseComputer(EbsEc2Instance(InstanceType.M44xlarge))
+                .configs((1..hardware.nodeCount).map {
                     JiraNodeConfig.Builder()
                         .name("jira-node-$it")
                         .profiler(AsyncProfiler())
@@ -392,10 +396,9 @@ class HardwareExploration(
                                 .build()
                         )
                         .build()
-                },
-                loadBalancerFormula = ElasticLoadBalancerFormula(),
-                computer = EbsEc2Instance(hardware.instanceType)
-            ),
+                })
+                .adminPwd(jiraAdminPassword)
+                .build(),
             virtualUsersFormula = ThrottlingMulticastVirtualUsersFormula(
                 MulticastVirtualUsersFormula(
                     nodes = scale.vuNodes,

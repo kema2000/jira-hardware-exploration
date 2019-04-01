@@ -35,6 +35,8 @@ import java.net.URI
 import java.nio.file.Paths
 import java.time.Duration
 
+const val jiraAdminPassword = "MasterPassword18"
+
 class HardwareExplorationIT {
 
     private val logger: Logger = LogManager.getLogger(this::class.java)
@@ -134,7 +136,7 @@ class HardwareExplorationIT {
     fun shouldExploreHardware() {
         HardwareExploration(
             scale = ApplicationScale(
-                description = "Jira L profile",
+                description = "Jira XL profile",
                 dataset = sevenMillionIssues,
                 load = VirtualUserLoad.Builder()
                     .virtualUsers(75)
