@@ -39,7 +39,7 @@ const val jiraAdminPassword = "MasterPassword18"
 
 class HardwareExplorationIT {
 
-    private val logger: Logger = LogManager.getLogger(this::class.java)
+    private val logger: Logger = IntegrationTestRuntime.logContext.getLogger(this::class.java.canonicalName)
     private val oneMillionIssues = DatasetCatalogue().custom(
         location = StorageLocation(
             uri = URI("s3://jpt-custom-datasets-storage-a008820-datasetbucket-1sjxdtrv5hdhj/")
@@ -165,13 +165,7 @@ class HardwareExplorationIT {
                 useCase = "Test hardware recommendations - ${IntegrationTestRuntime.taskName}",
                 lifespan = Duration.ofHours(2)
             ),
-            aws = Aws(
-                credentialsProvider = DefaultAWSCredentialsProviderChain(),
-                region = EU_WEST_1,
-                regionsWithHousekeeping = listOf(EU_WEST_1),
-                capacity = TextCapacityMediator(EU_WEST_1),
-                batchingCloudformationRefreshPeriod = Duration.ofSeconds(20)
-            ),
+            aws = IntegrationTestRuntime.aws,
             task = IntegrationTestRuntime.workspace
         ).exploreHardware()
     }
