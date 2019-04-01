@@ -1,15 +1,18 @@
 package com.atlassian.performance.tools.hardware
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
+import com.amazonaws.regions.Regions
 import com.amazonaws.regions.Regions.EU_WEST_1
 import com.amazonaws.services.ec2.model.InstanceType.*
 import com.atlassian.performance.tools.aws.api.Aws
 import com.atlassian.performance.tools.aws.api.Investment
 import com.atlassian.performance.tools.aws.api.StorageLocation
 import com.atlassian.performance.tools.aws.api.TextCapacityMediator
+import com.atlassian.performance.tools.awsinfrastructure.S3DatasetPackage
 import com.atlassian.performance.tools.awsinfrastructure.api.CustomDatasetSource
 import com.atlassian.performance.tools.awsinfrastructure.api.DatasetCatalogue
 import com.atlassian.performance.tools.infrastructure.api.database.DbType
+import com.atlassian.performance.tools.infrastructure.api.database.PostgresDatabase
 import com.atlassian.performance.tools.infrastructure.api.dataset.Dataset
 import com.atlassian.performance.tools.infrastructure.api.dataset.DatasetPackage
 import com.atlassian.performance.tools.infrastructure.api.dataset.FileArchiver
@@ -35,16 +38,54 @@ import java.time.Duration
 class HardwareExplorationIT {
 
     private val logger: Logger = LogManager.getLogger(this::class.java)
-    private val oneMillionIssues = DatasetCatalogue().custom(
-        location = StorageLocation(
-            uri = URI("s3://jpt-custom-datasets-storage-a008820-datasetbucket-1sjxdtrv5hdhj/")
-                .resolve("a12fc4c5-3973-41f0-bf56-ede393677028"),
-            region = EU_WEST_1
+//    private val oneMillionIssues = DatasetCatalogue().custom(
+//        location = StorageLocation(
+//            uri = URI("s3://jpt-custom-datasets-storage-a008820-datasetbucket-1sjxdtrv5hdhj/")
+//                .resolve("a12fc4c5-3973-41f0-bf56-ede393677028"),
+//            region = EU_WEST_1
+//        ),
+//        label = "1M issues",
+//        databaseDownload = Duration.ofMinutes(20),
+//        jiraHomeDownload = Duration.ofMinutes(20),
+//        dbType = DbType.Postgres
+//    ).overrideDatabase { originalDataset ->
+//        val localLicense = Paths.get("jira-license.txt")
+//        LicenseOverridingDatabase(
+//            originalDataset.database,
+//            listOf(
+//                localLicense
+//                    .toExistingFile()
+//                    ?.readText()
+//                    ?: throw  Exception("Put a Jira license to ${localLicense.toAbsolutePath()}")
+//            ))
+//    }
+
+
+    val location = StorageLocation(
+        //s3://jpt-custom-postgres-xl/dataset-7m/jirahome.tar.bz2
+        uri = URI("s3://jpt-custom-postgres-xl/")
+            .resolve("dataset-7m"),
+        region = Regions.EU_WEST_1
+    )
+
+    val databse = PostgresDatabase(
+        source = S3DatasetPackage(
+            artifactName = "database.tar.bz2",
+            location = location,
+            unpackedPath = "database",
+            downloadTimeout = Duration.ofMinutes(20)
         ),
-        label = "1M issues",
-        databaseDownload = Duration.ofMinutes(20),
-        jiraHomeDownload = Duration.ofMinutes(20),
-        dbType = DbType.Postgres
+        dbName = "atldb",
+        dbUser = "postgres",
+        dbPassword ="postgres"
+    )
+
+    val sevenMillionIssues = DatasetCatalogue().custom(
+        location = location,
+        label = "7M issues",
+//        databaseDownload = Duration.ofMinutes(40),
+        jiraHomeDownload = Duration.ofMinutes(40),
+        databse = databse
     ).overrideDatabase { originalDataset ->
         val localLicense = Paths.get("jira-license.txt")
         LicenseOverridingDatabase(
@@ -56,7 +97,6 @@ class HardwareExplorationIT {
                     ?: throw  Exception("Put a Jira license to ${localLicense.toAbsolutePath()}")
             ))
     }
-
 
     private val failureTolerance = object : FailureTolerance {
         val cleaning = CleaningFailureTolerance()
@@ -97,7 +137,7 @@ class HardwareExplorationIT {
         HardwareExploration(
             scale = ApplicationScale(
                 description = "Jira L profile",
-                dataset = oneMillionIssues,
+                dataset = sevenMillionIssues,
                 load = VirtualUserLoad.Builder()
                     .virtualUsers(75)
                     .ramp(Duration.ofSeconds(90))
@@ -122,7 +162,7 @@ class HardwareExplorationIT {
                 pastFailures = failureTolerance
             ),
             investment = Investment(
-                useCase = "Test hardware recommendations - $taskName",
+                useCase = "Test hardware recommendations - ${IntegrationTestRuntime.taskName}",
                 lifespan = Duration.ofHours(2)
             ),
             aws = Aws(
@@ -132,19 +172,8 @@ class HardwareExplorationIT {
                 capacity = TextCapacityMediator(EU_WEST_1),
                 batchingCloudformationRefreshPeriod = Duration.ofSeconds(20)
             ),
-            task = workspace
+            task = IntegrationTestRuntime.workspace
         ).exploreHardware()
     }
 
-
-    companion object {
-        const val taskName = "QUICK-54-controlled-load-3"
-        private val workspace = RootWorkspace(Paths.get("build")).isolateTask(taskName)
-
-        @BeforeClass
-        @JvmStatic
-        fun setUp() {
-            ConfigurationFactory.setConfigurationFactory(LogConfigurationFactory(workspace))
-        }
-    }
 }

@@ -44,58 +44,12 @@ class JiraInstanceTest {
     private val rootWorkspace = RootWorkspace()
     private val testWorkspace = rootWorkspace.currentTask.isolateTest("JiraInstanceTest")
 
-    private val logger: Logger = LogManager.getLogger(this::class.java)
-
-    private val oneMillionIssues = DatasetCatalogue().custom(
-        location = StorageLocation(
-            uri = URI("s3://jpt-custom-datasets-storage-a008820-datasetbucket-1sjxdtrv5hdhj/")
-                .resolve("a12fc4c5-3973-41f0-bf56-ede393677028"),
-            region = Regions.EU_WEST_1
-        ),
-        label = "1M issues",
-        databaseDownload = Duration.ofMinutes(20),
-        jiraHomeDownload = Duration.ofMinutes(20),
-        dbType = DbType.MySql
-    ).overrideDatabase { originalDataset ->
-        val localLicense = Paths.get("jira-license.txt")
-        LicenseOverridingDatabase(
-            originalDataset.database,
-            listOf(
-                localLicense
-                    .toExistingFile()
-                    ?.readText()
-                    ?: throw  Exception("Put a Jira license to ${localLicense.toAbsolutePath()}")
-            ))
-    }
-
-    private val sevenMillionIssues = DatasetCatalogue().custom(
-        location = StorageLocation(
-            //s3://jpt-custom-postgres-xl/dataset-7m/jirahome.tar.bz2
-            uri = URI("s3://jpt-custom-postgres-xl/")
-                .resolve("dataset-7m"),
-            region = Regions.EU_WEST_1
-        ),
-        label = "6M issues",
-        databaseDownload = Duration.ofMinutes(40),
-        jiraHomeDownload = Duration.ofMinutes(40),
-        dbType = DbType.Postgres
-    ).overrideDatabase { originalDataset ->
-        val localLicense = Paths.get("jira-license.txt")
-        LicenseOverridingDatabase(
-            originalDataset.database,
-            listOf(
-                localLicense
-                    .toExistingFile()
-                    ?.readText()
-                    ?: throw  Exception("Put a Jira license to ${localLicense.toAbsolutePath()}")
-            ))
-    }
 
     @Test
     fun shouldProvisionAnInstance() {
         val jiraVersion = "7.13.0"
 
-        val dataset = sevenMillionIssues
+        val dataset = HardwareExplorationIT().sevenMillionIssues
         val lifespan = Duration.ofHours(8)
         val infrastructure = InfrastructureFormula(
             investment = Investment(
@@ -120,7 +74,7 @@ class JiraInstanceTest {
     fun shouldProvisionAnDcInstance() {
         val jiraVersion = "7.13.0"
 
-        val dataset = sevenMillionIssues
+        val dataset = HardwareExplorationIT().sevenMillionIssues
         val lifespan = Duration.ofHours(8)
         val infrastructure = InfrastructureFormula(
             investment = Investment(
@@ -132,7 +86,6 @@ class JiraInstanceTest {
                 jiraHomeSource = dataset.jiraHomeSource,
                 productDistribution = PublicJiraSoftwareDistribution(jiraVersion))
                 .computer(C5NineExtraLargeEphemeral())
-                .configs(listOf(JiraNodeConfig.Builder().name("jira-node-1").build()))
                 .adminPwd("MasterPassword18")
                 .build(),
             virtualUsersFormula = AbsentVirtualUsersFormula(),
