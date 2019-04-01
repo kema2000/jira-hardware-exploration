@@ -34,19 +34,16 @@ import java.nio.file.Paths
 import java.time.Duration
 
 class JiraInstanceTest {
-    private val aws = Aws(
-        credentialsProvider = DefaultAWSCredentialsProviderChain(),
-        region = Regions.EU_WEST_1,
-        regionsWithHousekeeping = listOf(Regions.EU_WEST_1),
-        capacity = TextCapacityMediator(Regions.EU_WEST_1),
-        batchingCloudformationRefreshPeriod = Duration.ofSeconds(20)
-    )
+    private val aws = IntegrationTestRuntime.aws
     private val rootWorkspace = RootWorkspace()
     private val testWorkspace = rootWorkspace.currentTask.isolateTest("JiraInstanceTest")
 
-
     @Test
     fun shouldProvisionAnInstance() {
+        provisionDcInstance()
+    }
+
+    fun provisionServerInstance() {
         val jiraVersion = "7.13.0"
 
         val dataset = HardwareExplorationIT().sevenMillionIssues
@@ -65,13 +62,12 @@ class JiraInstanceTest {
                 .adminPwd("MasterPassword18")
                 .build(),
             virtualUsersFormula = AbsentVirtualUsersFormula(),
-            aws = AtlassianAccount.DEVELOPMENT_IRELAND.aws
+            aws = aws
         ).provision(testWorkspace.directory).infrastructure
         CustomDatasetSourceRegistry(rootWorkspace).register(infrastructure)
     }
 
-    @Test
-    fun shouldProvisionAnDcInstance() {
+    fun provisionDcInstance() {
         val jiraVersion = "7.13.0"
 
         val dataset = HardwareExplorationIT().sevenMillionIssues
@@ -85,8 +81,8 @@ class JiraInstanceTest {
                 database = dataset.database,
                 jiraHomeSource = dataset.jiraHomeSource,
                 productDistribution = PublicJiraSoftwareDistribution(jiraVersion))
-                .computer(EbsEc2Instance(InstanceType.M44xlarge).withVolumeSize(200))
-                .databaseComputer(EbsEc2Instance(InstanceType.M44xlarge).withVolumeSize(200))
+                .computer(EbsEc2Instance(InstanceType.M44xlarge).withVolumeSize(300))
+                .databaseComputer(EbsEc2Instance(InstanceType.M44xlarge).withVolumeSize(300))
                 .adminPwd("MasterPassword18")
                 .build(),
             virtualUsersFormula = AbsentVirtualUsersFormula(),
