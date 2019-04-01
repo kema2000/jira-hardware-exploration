@@ -139,12 +139,12 @@ class HardwareExplorationIT {
                 description = "Jira XL profile",
                 dataset = sevenMillionIssues,
                 load = VirtualUserLoad.Builder()
-                    .virtualUsers(75)
+                    .virtualUsers(150)
                     .ramp(Duration.ofSeconds(90))
                     .flat(Duration.ofMinutes(20))
                     .maxOverallLoad(TemporalRate(15.0, Duration.ofSeconds(1)))
                     .build(),
-                vuNodes = 6
+                vuNodes = 12
             ),
             guidance = ExplorationGuidance(
                 instanceTypes = listOf(
