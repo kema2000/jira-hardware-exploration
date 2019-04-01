@@ -384,8 +384,8 @@ class HardwareExploration(
                 database = scale.dataset.database,
                 jiraHomeSource = scale.dataset.jiraHomeSource,
                 productDistribution = PublicJiraSoftwareDistribution("7.13.0"))
-                .computer(EbsEc2Instance(hardware.instanceType))
-                .databaseComputer(EbsEc2Instance(InstanceType.M44xlarge))
+                .computer(EbsEc2Instance(hardware.instanceType).withVolumeSize(300))
+                .databaseComputer(EbsEc2Instance(InstanceType.M44xlarge).withVolumeSize(300))
                 .configs((1..hardware.nodeCount).map {
                     JiraNodeConfig.Builder()
                         .name("jira-node-$it")
