@@ -18,7 +18,7 @@ import java.util.*
 
 object IntegrationTestRuntime {
 
-    const val taskName = "QUICK-94-run-on-ci"
+    const val taskName = "QUICK-103-C518xlarge-run-on-ci"
     val workspace = RootWorkspace(Paths.get("build")).isolateTask(taskName)
 
     val aws: Aws
@@ -40,36 +40,6 @@ object IntegrationTestRuntime {
             capacity = TextCapacityMediator(Regions.EU_WEST_1),
             batchingCloudformationRefreshPeriod = Duration.ofSeconds(20)
         )
-        initWorkSpace()
-    }
-
-    fun initWorkSpace(){
-        //download the result
-        try{
-            if(System.getenv("bamboo_buildResultKey") != null){
-                println("Downloading result from s3 -- STARTED")
-                Storage(aws.s3, prefix="QUICK-94-workspace",
-                    bucketName = "temp-quicksilver").download(workspace.directory)
-                println("Downloading result from s3 -- FINISHED")
-            }
-        } catch(e: Exception){
-            //do nothing
-            println("Downloading result from s3 -- Failed : $e")
-        }
-    }
-
-    fun uploadResult(){
-        try {
-            if(System.getenv("bamboo_buildResultKey") != null){
-                println("Uploading result to s3 -- STARTED")
-                Storage(aws.s3, prefix="QUICK-94-workspace",
-                    bucketName = "temp-quicksilver").upload(workspace.directory.toFile())
-                println("Uploading result to s3 -- Finished")
-            }
-        } catch(e: Exception){
-            //do nothing
-            println("Uploading result to s3 -- Failed : $e")
-        }
     }
 
 }
