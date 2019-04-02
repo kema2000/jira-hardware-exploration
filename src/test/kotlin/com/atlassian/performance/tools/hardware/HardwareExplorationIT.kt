@@ -148,9 +148,9 @@ class HardwareExplorationIT {
             ),
             guidance = ExplorationGuidance(
                 instanceTypes = listOf(
-                    C52xlarge,
-                    C54xlarge,
-                    C48xlarge,
+//                    C52xlarge,
+//                    C54xlarge,
+//                    C48xlarge,
                     C518xlarge
                 ),
                 maxNodeCount = 16,

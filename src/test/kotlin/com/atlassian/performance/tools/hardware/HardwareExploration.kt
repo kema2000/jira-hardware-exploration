@@ -56,7 +56,7 @@ class HardwareExploration(
         .createUsers(true)
         .adminPassword(jiraAdminPassword)
         .build()
-    private val awsParallelism = 6
+    private val awsParallelism = 3
     private val results = ConcurrentHashMap<Hardware, Future<HardwareExplorationResult>>()
     private val cache = HardwareExplorationResultCache(task.directory.resolve("result-cache.json"))
     private val logger: Logger = LogManager.getLogger(this::class.java)
