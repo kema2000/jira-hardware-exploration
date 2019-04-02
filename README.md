@@ -1,1 +1,1 @@
-Run `./gradlew exploreHardware`
+Run `./gradlew exploreHardware` 
