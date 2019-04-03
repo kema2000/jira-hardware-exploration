@@ -57,6 +57,7 @@ class HardwareExploration(
         .adminPassword(jiraAdminPassword)
         .build()
     private val awsParallelism = 3
+    private val exploreParallelism = 3
     private val results = ConcurrentHashMap<Hardware, Future<HardwareExplorationResult>>()
     private val cache = HardwareExplorationResultCache(task.directory.resolve("result-cache.json"))
     private val logger: Logger = LogManager.getLogger(this::class.java)
@@ -66,7 +67,7 @@ class HardwareExploration(
             (1..guidance.maxNodeCount).map { Hardware(instanceType, it) }
         }
         val awsExecutor = Executors.newFixedThreadPool(awsParallelism)
-        val explorationExecutor = Executors.newFixedThreadPool(space.size)
+        val explorationExecutor = Executors.newFixedThreadPool(exploreParallelism)
         try {
             exploreHardwareInParallel(space, explorationExecutor, awsExecutor)
         } finally {
