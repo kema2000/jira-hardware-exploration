@@ -156,7 +156,7 @@ class HardwareExplorationIT {
                     InstanceType.fromValue(instanceTypeStr)
                 },
                 maxNodeCount = 16,
-                minNodeCountForAvailability = 3,
+                minNodeCountForAvailability = 2,
                 repeats = 2,
                 minApdexGain = 0.01,
                 maxApdexSpread = 0.10,
