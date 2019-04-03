@@ -44,6 +44,7 @@ task<Test>("exploreHardware").apply {
     systemProperty("jpt.virtual-users.shadow-jar", shadowJarTask.outputs.files.files.first())
     failFast = true
     maxHeapSize = "8g"
+    systemProperty("instanceTypes", System.getProperty("instanceTypes"))
 }
 
 task<Test>("cleanUpAfterBamboo").apply {

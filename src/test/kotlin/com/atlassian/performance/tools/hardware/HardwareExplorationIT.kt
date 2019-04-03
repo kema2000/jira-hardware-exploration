@@ -3,6 +3,7 @@ package com.atlassian.performance.tools.hardware
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
 import com.amazonaws.regions.Regions
 import com.amazonaws.regions.Regions.EU_WEST_1
+import com.amazonaws.services.ec2.model.InstanceType
 import com.amazonaws.services.ec2.model.InstanceType.*
 import com.atlassian.performance.tools.aws.api.Aws
 import com.atlassian.performance.tools.aws.api.Investment
@@ -134,6 +135,10 @@ class HardwareExplorationIT {
 
     @Test
     fun shouldExploreHardware() {
+        val instanceTypeList: List<String> = System.getProperty("instanceTypes", "c5.2xlarge,c5.4xlarge,c4.8xlarge,c5.18xlarge").split(",")
+
+        logger.info("Target Instance Types : $instanceTypeList")
+
         HardwareExploration(
             scale = ApplicationScale(
                 description = "Jira XL profile",
@@ -147,12 +152,9 @@ class HardwareExplorationIT {
                 vuNodes = 12
             ),
             guidance = ExplorationGuidance(
-                instanceTypes = listOf(
-//                    C52xlarge,
-//                    C54xlarge,
-//                    C48xlarge,
-                    C518xlarge
-                ),
+                instanceTypes = instanceTypeList.map { instanceTypeStr ->
+                    InstanceType.fromValue(instanceTypeStr)
+                },
                 maxNodeCount = 16,
                 minNodeCountForAvailability = 3,
                 repeats = 2,
