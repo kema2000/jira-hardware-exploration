@@ -33,19 +33,4 @@ class BambooCleanupIT {
         }
     }
 
-    @Before
-    fun setupHeartBeat() {
-
-        if(System.getenv("bamboo_buildResultKey") != null){
-            val pool = Executors.newFixedThreadPool(1)
-            pool.submit{
-                while (true){
-                    Thread.sleep(120000)
-                    println("JPT heart beat")
-                }
-            }
-            pool.shutdown()
-        }
-    }
-
 }
