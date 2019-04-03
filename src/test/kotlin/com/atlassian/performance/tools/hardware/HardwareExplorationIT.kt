@@ -165,7 +165,7 @@ class HardwareExplorationIT {
             ),
             investment = Investment(
                 useCase = "Test hardware recommendations - ${IntegrationTestRuntime.taskName}",
-                lifespan = Duration.ofHours(2)
+                lifespan = Duration.ofHours(3)
             ),
             aws = IntegrationTestRuntime.aws,
             task = IntegrationTestRuntime.workspace
