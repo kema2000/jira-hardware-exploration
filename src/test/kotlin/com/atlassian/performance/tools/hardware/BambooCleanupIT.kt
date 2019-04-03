@@ -17,7 +17,7 @@ class BambooCleanupIT {
         logger.info("Pulling stacks data...")
         val stacks = aws.listDisposableStacks()
             .map { ProvisionedStack(it, aws) }
-            .filter { it.bambooBuild?.startsWith("JIRA-JHWR") ?: false }
+            .filter { it.bambooBuild?.startsWith("QUICK-JHWR") ?: false }
         if (stacks.isNotEmpty()) {
             logger.info("Deleting stacks...")
             stacks
