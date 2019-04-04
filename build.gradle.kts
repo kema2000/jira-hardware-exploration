@@ -36,6 +36,10 @@ tasks.withType(KotlinCompile::class).forEach {
 }
 
 task<Test>("exploreHardware").apply {
+    testLogging{
+        outputs.upToDateWhen {false}
+        showStandardStreams = true
+    }
     outputs.upToDateWhen{false}
     description = "Explores performance of different hardware setups for Jira."
     include("**/HardwareExplorationIT.class")
@@ -45,15 +49,16 @@ task<Test>("exploreHardware").apply {
     failFast = true
     maxHeapSize = "8g"
     systemProperty("instanceTypes", System.getProperty("instanceTypes"))
+    testLogging {
+        showStandardStreams = true
+    }
 }
 
 task<Test>("cleanUpAfterBamboo").apply {
     outputs.upToDateWhen{false}
     include("**/BambooCleanupIT.class")
     testLogging {
-        if (System.getenv("bamboo_buildResultKey") != null) {
-            showStandardStreams = true
-        }
+        showStandardStreams = true
     }
 }
 
@@ -62,6 +67,9 @@ task<Test>("testPostgres").apply {
     description = "Try Postgres DB for for Jira."
     include("**/JiraInstanceTest.class")
     failFast = true
+    testLogging {
+        showStandardStreams = true
+    }
 }
 
 dependencies {

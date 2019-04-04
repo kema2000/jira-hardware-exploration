@@ -54,7 +54,16 @@ internal class LogConfiguration(
             logToFile(
                 name = "com.atlassian.performance.tools",
                 path = Paths.get("detailed.log")
-            )
+            ).also { log ->
+                log.addAppender(
+                    KConsoleAppenderBuilder()
+                        .withName("console")
+                        .withLayout(layout("%d{ABSOLUTE} %highlight{%-5level} %x %msg%n"))
+                        .build(),
+                    Level.DEBUG,
+                    null
+                )
+            }
         ).forEach { addLogger(it.name, it) }
     }
 
