@@ -55,6 +55,7 @@ class HardwareExploration(
         .browser(HeadlessChromeBrowser::class.java)
         .createUsers(true)
         .adminPassword(jiraAdminPassword)
+        .skipSetup(true)
         .build()
     private val awsParallelism = 3
     private val exploreParallelism = 2
