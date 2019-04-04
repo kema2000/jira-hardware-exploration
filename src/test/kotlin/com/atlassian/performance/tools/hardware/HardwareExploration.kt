@@ -58,7 +58,7 @@ class HardwareExploration(
         .skipSetup(true)
         .build()
     private val awsParallelism = 3
-    private val exploreParallelism = 2
+    private val exploreParallelism = 3
     private val results = ConcurrentHashMap<Hardware, Future<HardwareExplorationResult>>()
     private val cache = HardwareExplorationResultCache(task.directory.resolve("result-cache.json"))
     private val logger: Logger = LogManager.getLogger(this::class.java)
