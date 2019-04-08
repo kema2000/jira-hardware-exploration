@@ -48,7 +48,10 @@ task<Test>("exploreHardware").apply {
     systemProperty("jpt.virtual-users.shadow-jar", shadowJarTask.outputs.files.files.first())
     failFast = true
     maxHeapSize = "8g"
-    systemProperty("instanceTypes", System.getProperty("instanceTypes"))
+    systemProperties(mapOf(
+        "instanceTypes" to System.getProperty("instanceTypes"),
+        "instanceNumbers" to System.getProperty("instanceNumbers")
+    ))
     testLogging {
         showStandardStreams = true
     }

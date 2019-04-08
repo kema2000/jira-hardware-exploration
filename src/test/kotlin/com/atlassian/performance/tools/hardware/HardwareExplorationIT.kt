@@ -78,8 +78,9 @@ class HardwareExplorationIT {
     }
 
     val instanceTypeList: List<String> = System.getProperty("instanceTypes", "c5.2xlarge,c5.4xlarge,c4.8xlarge,c5.18xlarge").split(",")
+    val fixedNodeNum: Int = Integer.parseInt(System.getProperty("instanceNumbers", "0"))
 
-    private var jiraInstanceTypes = instanceTypeList.map { instanceTypeStr ->
+    private val jiraInstanceTypes = instanceTypeList.map { instanceTypeStr ->
         fromValue(instanceTypeStr)
     }
 
@@ -133,15 +134,26 @@ class HardwareExplorationIT {
     }
 
     private fun exploreJiraHardware(): List<HardwareExplorationResult> = explore(
-        JiraExplorationGuidance(
-            instanceTypes = jiraInstanceTypes,
-            minNodeCount = 3,
-            maxNodeCount = 3,
-            minNodeCountForAvailability = 3,
-            minApdexGain = 0.01,
-            db = M4Xlarge,
-            resultsCache = resultCache
-        )
+        when (fixedNodeNum) {
+            0 -> JiraExplorationGuidance(
+                instanceTypes = jiraInstanceTypes,
+                minNodeCount = 1,
+                maxNodeCount = 16,
+                minNodeCountForAvailability = 3,
+                minApdexGain = 0.01,
+                db = M4Xlarge,
+                resultsCache = resultCache
+            )
+            else -> JiraExplorationGuidance(
+                instanceTypes = jiraInstanceTypes,
+                minNodeCount = fixedNodeNum,
+                maxNodeCount = fixedNodeNum,
+                minNodeCountForAvailability = 3,
+                minApdexGain = 0.01,
+                db = M4Xlarge,
+                resultsCache = resultCache
+            )
+        }
     )
 
     private fun explore(
