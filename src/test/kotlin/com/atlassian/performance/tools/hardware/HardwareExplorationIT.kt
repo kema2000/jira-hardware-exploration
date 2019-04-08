@@ -174,7 +174,7 @@ class HardwareExplorationIT {
         maxApdexSpread = 0.10,
         maxErrorRate = 0.05,
         pastFailures = BugAwareTolerance(logger),
-        repeats = 2,
+        repeats = 1,
         investment = Investment(
             useCase = "Test hardware recommendations - $taskName",
             lifespan = Duration.ofHours(2)
