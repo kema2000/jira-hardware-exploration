@@ -20,16 +20,7 @@ internal class LogConfiguration(
             logToFile(
                 name = "com.atlassian.performance.tools.hardware",
                 path = Paths.get("hardware-exploration.log")
-            ).also { log ->
-                log.addAppender(
-                    KConsoleAppenderBuilder()
-                        .withName("console")
-                        .withLayout(layout("%d{ABSOLUTE} %highlight{%-5level} %x %msg%n"))
-                        .build(),
-                    Level.INFO,
-                    null
-                )
-            },
+            ),
             logToFile(
                 name = "com.atlassian.performance.tools.jvmtasks.api.TaskTimer",
                 path = Paths.get("timing.log"),
@@ -82,7 +73,7 @@ internal class LogConfiguration(
                         .withName("console")
                         .withLayout(layout("%d{ABSOLUTE} %highlight{%-5level} %x %msg%n"))
                         .build(),
-                    Level.DEBUG,
+                    Level.INFO,
                     null
                 )
             }
