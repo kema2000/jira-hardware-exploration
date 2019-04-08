@@ -141,7 +141,7 @@ class HardwareExplorationIT {
                 maxNodeCount = 16,
                 minNodeCountForAvailability = 3,
                 minApdexGain = 0.01,
-                db = M4Xlarge,
+                db = M44xlarge,
                 resultsCache = resultCache
             )
             else -> JiraExplorationGuidance(
@@ -150,7 +150,7 @@ class HardwareExplorationIT {
                 maxNodeCount = fixedNodeNum,
                 minNodeCountForAvailability = 3,
                 minApdexGain = 0.01,
-                db = M4Xlarge,
+                db = M44xlarge,
                 resultsCache = resultCache
             )
         }
@@ -174,7 +174,7 @@ class HardwareExplorationIT {
         maxApdexSpread = 0.10,
         maxErrorRate = 0.05,
         pastFailures = BugAwareTolerance(logger),
-        repeats = 1,
+        repeats = 2,
         investment = Investment(
             useCase = "Test hardware recommendations - $taskName",
             lifespan = Duration.ofHours(2)
