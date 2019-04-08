@@ -15,6 +15,7 @@ import java.util.concurrent.Future
 
 class JiraExplorationGuidance(
     private val instanceTypes: List<InstanceType>,
+    private val minNodeCount: Int = 1,
     private val maxNodeCount: Int,
     private val minNodeCountForAvailability: Int,
     private val minApdexGain: Double,
@@ -23,7 +24,7 @@ class JiraExplorationGuidance(
 ) : ExplorationGuidance {
 
     override fun space(): List<Hardware> = instanceTypes.flatMap { instanceType ->
-        (1..maxNodeCount).map { Hardware(instanceType, it, db) }
+        (minNodeCount..maxNodeCount).map { Hardware(instanceType, it, db) }
     }
 
     override fun decideTesting(
