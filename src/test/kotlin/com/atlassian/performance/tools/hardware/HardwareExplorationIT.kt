@@ -41,53 +41,34 @@ const val jiraAdminPassword = "MasterPassword18"
 class HardwareExplorationIT {
 
     private val logger: Logger = IntegrationTestRuntime.logContext.getLogger(this::class.java.canonicalName)
-    private val oneMillionIssues = DatasetCatalogue().custom(
-        location = StorageLocation(
-            uri = URI("s3://jpt-custom-datasets-storage-a008820-datasetbucket-1sjxdtrv5hdhj/")
-                .resolve("a12fc4c5-3973-41f0-bf56-ede393677028"),
-            region = EU_WEST_1
-        ),
-        label = "1M issues",
-        databaseDownload = Duration.ofMinutes(20),
-        jiraHomeDownload = Duration.ofMinutes(20),
-        dbType = DbType.Postgres
-    ).overrideDatabase { originalDataset ->
-        val localLicense = Paths.get("jira-license.txt")
-        LicenseOverridingDatabase(
-            originalDataset.database,
-            listOf(
-                localLicense
-                    .toExistingFile()
-                    ?.readText()
-                    ?: throw  Exception("Put a Jira license to ${localLicense.toAbsolutePath()}")
-            ))
-    }
 
-    val location = StorageLocation(
-        //s3://jpt-custom-postgres-xl/dataset-7m/jirahome.tar.bz2
-        uri = URI("s3://jpt-custom-postgres-xl/")
-            .resolve("dataset-7m"),
+    private val sevenMillionIssues = StorageLocation(
+        uri = URI("s3://jpt-custom-postgres-xl/dataset-7m"),
         region = Regions.EU_WEST_1
-    )
-
-    val databse = PostgresDatabase(
-        source = S3DatasetPackage(
-            artifactName = "database.tar.bz2",
-            location = location,
-            unpackedPath = "database",
-            downloadTimeout = Duration.ofMinutes(20)
-        ),
-        dbName = "atldb",
-        dbUser = "postgres",
-        dbPassword ="postgres"
-    )
-
-    val sevenMillionIssues = DatasetCatalogue().custom(
-        location = location,
-        label = "7M issues",
-        jiraHomeDownload = Duration.ofMinutes(40),
-        databse = databse
-    ).overrideDatabase { originalDataset ->
+    ).let { location ->
+        Dataset(
+            label = "7M issues",
+            database = PostgresDatabase(
+                source = S3DatasetPackage(
+                    artifactName = "database.tar.bz2",
+                    location = location,
+                    unpackedPath = "database",
+                    downloadTimeout = Duration.ofMinutes(40)
+                ),
+                dbName = "atldb",
+                dbUser = "postgres",
+                dbPassword = "postgres"
+            ),
+            jiraHomeSource = JiraHomePackage(
+                S3DatasetPackage(
+                    artifactName = "jirahome.tar.bz2",
+                    location = location,
+                    unpackedPath = "jirahome",
+                    downloadTimeout = Duration.ofMinutes(40)
+                )
+            )
+        )
+    }.overrideDatabase { originalDataset ->
         val localLicense = Paths.get("jira-license.txt")
         LicenseOverridingDatabase(
             originalDataset.database,

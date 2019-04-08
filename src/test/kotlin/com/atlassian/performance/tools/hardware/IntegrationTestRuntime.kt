@@ -5,7 +5,6 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider
 import com.amazonaws.regions.Regions
 import com.atlassian.performance.tools.aws.api.Aws
-import com.atlassian.performance.tools.aws.api.Storage
 import com.atlassian.performance.tools.aws.api.TextCapacityMediator
 import com.atlassian.performance.tools.lib.LogConfigurationFactory
 import com.atlassian.performance.tools.workspace.api.RootWorkspace
@@ -18,7 +17,7 @@ import java.util.*
 
 object IntegrationTestRuntime {
 
-    const val taskName = "QUICK-103-run-on-ci"
+    const val taskName = "QUICK-103"
     val workspace = RootWorkspace(Paths.get("build")).isolateTask(taskName)
 
     val aws: Aws
@@ -27,12 +26,12 @@ object IntegrationTestRuntime {
     init {
         ConfigurationFactory.setConfigurationFactory(LogConfigurationFactory(workspace))
         logContext = LogManager.getContext()
-        var roleArn: String = System.getenv("atl_bamboo_assumrole") ?: "arn:aws:iam::695067801333:role/server-gdn-bamboo"
         aws = Aws(
             credentialsProvider = AWSCredentialsProviderChain(
                 STSAssumeRoleSessionCredentialsProvider.Builder(
-                    roleArn,
-                    UUID.randomUUID().toString()).build(),
+                    "arn:aws:iam::695067801333:role/server-gdn-bamboo",
+                    UUID.randomUUID().toString()
+                ).build(),
                 DefaultAWSCredentialsProviderChain()
             ),
             region = Regions.EU_WEST_1,
@@ -41,5 +40,4 @@ object IntegrationTestRuntime {
             batchingCloudformationRefreshPeriod = Duration.ofSeconds(20)
         )
     }
-
 }
