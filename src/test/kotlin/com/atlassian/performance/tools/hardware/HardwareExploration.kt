@@ -7,33 +7,29 @@ import com.atlassian.performance.tools.awsinfrastructure.api.InfrastructureFormu
 import com.atlassian.performance.tools.awsinfrastructure.api.hardware.EbsEc2Instance
 import com.atlassian.performance.tools.awsinfrastructure.api.jira.DataCenterFormula
 import com.atlassian.performance.tools.awsinfrastructure.api.loadbalancer.ElasticLoadBalancerFormula
-import com.atlassian.performance.tools.awsinfrastructure.api.storage.JiraSoftwareStorage
 import com.atlassian.performance.tools.awsinfrastructure.api.virtualusers.MulticastVirtualUsersFormula
+import com.atlassian.performance.tools.hardware.failure.FailureTolerance
+import com.atlassian.performance.tools.hardware.guidance.ExplorationGuidance
 import com.atlassian.performance.tools.hardware.vu.CustomScenario
-import com.atlassian.performance.tools.infrastructure.api.app.Apps
 import com.atlassian.performance.tools.infrastructure.api.browser.chromium.Chromium69
 import com.atlassian.performance.tools.infrastructure.api.distribution.PublicJiraSoftwareDistribution
 import com.atlassian.performance.tools.infrastructure.api.jira.JiraLaunchTimeouts
 import com.atlassian.performance.tools.infrastructure.api.jira.JiraNodeConfig
 import com.atlassian.performance.tools.infrastructure.api.profiler.AsyncProfiler
-import com.atlassian.performance.tools.infrastructure.api.splunk.DisabledSplunkForwarder
 import com.atlassian.performance.tools.io.api.dereference
 import com.atlassian.performance.tools.io.api.directories
 import com.atlassian.performance.tools.jiraactions.api.*
 import com.atlassian.performance.tools.jiraperformancetests.api.ProvisioningPerformanceTest
 import com.atlassian.performance.tools.jirasoftwareactions.api.actions.ViewBacklogAction.Companion.VIEW_BACKLOG
 import com.atlassian.performance.tools.lib.*
-import com.atlassian.performance.tools.lib.infrastructure.ThrottlingMulticastVirtualUsersFormula
 import com.atlassian.performance.tools.report.api.FullReport
 import com.atlassian.performance.tools.report.api.StandardTimeline
-import com.atlassian.performance.tools.report.api.result.CohortResult
 import com.atlassian.performance.tools.report.api.result.EdibleResult
 import com.atlassian.performance.tools.report.api.result.RawCohortResult
 import com.atlassian.performance.tools.virtualusers.api.browsers.HeadlessChromeBrowser
 import com.atlassian.performance.tools.virtualusers.api.config.VirtualUserBehavior
 import com.atlassian.performance.tools.workspace.api.TaskWorkspace
 import com.atlassian.performance.tools.workspace.api.TestWorkspace
-import com.atlassian.performance.tools.workspace.api.git.GitRepo
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.io.File
@@ -45,11 +41,16 @@ class HardwareExploration(
     private val guidance: ExplorationGuidance,
     private val investment: Investment,
     private val aws: Aws,
-    private val task: TaskWorkspace
+    private val task: TaskWorkspace,
+    private val repeats: Int,
+    private val pastFailures: FailureTolerance,
+    private val maxErrorRate: Double,
+    private val maxApdexSpread: Double
 ) {
 
     private val virtualUsers: VirtualUserBehavior = VirtualUserBehavior.Builder(CustomScenario::class.java)
         .load(scale.load)
+        .createUsers(true)
         .seed(78432)
         .diagnosticsLimit(32)
         .browser(HeadlessChromeBrowser::class.java)
@@ -57,19 +58,15 @@ class HardwareExploration(
         .adminPassword(jiraAdminPassword)
         .build()
     private val awsParallelism = 3
-    private val exploreParallelism = 3
     private val results = ConcurrentHashMap<Hardware, Future<HardwareExplorationResult>>()
-    private val cache = HardwareExplorationResultCache(task.directory.resolve("result-cache.json"))
     private val logger: Logger = LogManager.getLogger(this::class.java)
 
-    fun exploreHardware() {
-        val space = guidance.instanceTypes.flatMap { instanceType ->
-            (1..guidance.maxNodeCount).map { Hardware(instanceType, it) }
-        }
+    fun exploreHardware(): List<HardwareExplorationResult> {
+        val space = guidance.space()
         val awsExecutor = Executors.newFixedThreadPool(awsParallelism)
-        val explorationExecutor = Executors.newFixedThreadPool(exploreParallelism)
+        val explorationExecutor = Executors.newFixedThreadPool(space.size)
         try {
-            exploreHardwareInParallel(space, explorationExecutor, awsExecutor)
+            return exploreHardwareInParallel(space, explorationExecutor, awsExecutor)
         } finally {
             explorationExecutor.shutdown()
             awsExecutor.shutdown()
@@ -81,7 +78,7 @@ class HardwareExploration(
         hardwareSpace: List<Hardware>,
         explorationExecutor: ExecutorService,
         awsExecutor: ExecutorService
-    ) {
+    ): List<HardwareExplorationResult> {
         val completion = ExecutorCompletionService<HardwareExplorationResult>(explorationExecutor)
         hardwareSpace.forEach { hardware ->
             results.computeIfAbsent(hardware) {
@@ -94,22 +91,16 @@ class HardwareExploration(
         }
         val completedResults = awaitResults(completion)
         report(completedResults)
+        return completedResults
     }
 
     private fun report(
         results: List<HardwareExplorationResult>
-    ) = synchronized(this) {
-        cache.write(results)
-        HardwareExplorationTable().summarize(
-            results = results,
-            instanceTypesOrder = guidance.instanceTypes,
-            table = task.isolateReport("exploration-table.csv")
-        )
-        HardwareExplorationChart(GitRepo.findFromCurrentDirectory()).plot(
-            results = results,
-            application = scale.description,
-            output = task.isolateReport("exploration-chart.html"),
-            instanceTypeOrder = compareBy { guidance.instanceTypes.indexOf(it) }
+    ) {
+        guidance.report(
+            results,
+            task,
+            scale.description
         )
     }
 
@@ -161,7 +152,21 @@ class HardwareExploration(
         awsExecutor: ExecutorService,
         completion: ExecutorCompletionService<HardwareExplorationResult>
     ): Callable<HardwareExplorationResult> = Callable {
-        val decision = decideTesting(hardware, awsExecutor, completion)
+        val decision = guidance.decideTesting(hardware) { otherHardware ->
+            if (otherHardware == hardware) {
+                throw Exception(
+                    "Avoiding an infinite loop!" +
+                        " Tried to obtain $hardware results in order to know if we want to obtain these results."
+                )
+            }
+            results.computeIfAbsent(otherHardware) {
+                completion.submit(explore(
+                    hardware = it,
+                    awsExecutor = awsExecutor,
+                    completion = completion
+                ))
+            }
+        }
         if (decision.worthExploring) {
             HardwareExplorationResult(
                 decision = decision,
@@ -175,67 +180,12 @@ class HardwareExploration(
         }
     }
 
-    private fun decideTesting(
-        hardware: Hardware,
-        awsExecutor: ExecutorService,
-        completion: ExecutorCompletionService<HardwareExplorationResult>
-    ): HardwareExplorationDecision {
-        if (hardware.nodeCount <= guidance.minNodeCountForAvailability) {
-            return HardwareExplorationDecision(
-                hardware = hardware,
-                worthExploring = true,
-                reason = "high availability"
-            )
-        }
-        val smallerHardwareTests = (1 until hardware.nodeCount)
-            .map { Hardware(hardware.instanceType, it) }
-            .map { smallerHardware ->
-                results.computeIfAbsent(smallerHardware) {
-                    completion.submit(explore(
-                        hardware = it,
-                        awsExecutor = awsExecutor,
-                        completion = completion
-                    ))
-                }
-            }
-        val smallerHardwareResults = try {
-            smallerHardwareTests.map { it.get() }
-        } catch (e: Exception) {
-            return HardwareExplorationDecision(
-                hardware = hardware,
-                worthExploring = false,
-                reason = "testing smaller hardware had failed, ERROR: ${e.message}"
-            )
-        }
-        val apdexIncrements = smallerHardwareResults
-            .asSequence()
-            .mapNotNull { it.testResult }
-            .sortedBy { it.hardware.nodeCount }
-            .map { it.apdex }
-            .zipWithNext { a, b -> b - a }
-            .toList()
-        val strongPositiveImpact = apdexIncrements.all { it > guidance.minApdexGain }
-        return if (strongPositiveImpact) {
-            HardwareExplorationDecision(
-                hardware = hardware,
-                worthExploring = true,
-                reason = "adding more nodes made enough positive impact on Apdex"
-            )
-        } else {
-            HardwareExplorationDecision(
-                hardware = hardware,
-                worthExploring = false,
-                reason = "adding more nodes did not improve Apdex enough"
-            )
-        }
-    }
-
     private fun getRobustResult(
         hardware: Hardware,
         executor: ExecutorService
     ): HardwareTestResult {
         val reusableResults = reuseResults(hardware)
-        val missingResultCount = guidance.repeats - reusableResults.size
+        val missingResultCount = repeats - reusableResults.size
         val freshResults = runFreshResults(hardware, missingResultCount, executor)
         val allResults = reusableResults + freshResults
         return coalesce(allResults, hardware)
@@ -261,7 +211,7 @@ class HardwareExploration(
         return if (failure == null) {
             score(hardware, cohortResult, workspace)
         } else {
-            guidance.pastFailures.handle(failure, workspace)
+            pastFailures.handle(failure, workspace)
             null
         }
     }
@@ -282,7 +232,7 @@ class HardwareExploration(
 
     private fun postProcess(
         rawResults: RawCohortResult
-    ): EdibleResult {
+    ): EdibleResult = synchronized(this) {
         val timeline = StandardTimeline(scale.load.total)
         return rawResults.prepareForJudgement(timeline)
     }
@@ -321,7 +271,7 @@ class HardwareExploration(
             errorRate = ErrorRate().measure(metrics),
             errorRateSpread = 0.0
         )
-        if (hardwareResult.errorRate > guidance.maxErrorRate) {
+        if (hardwareResult.errorRate > maxErrorRate) {
             throw Exception("Error rate for $cohort is too high: ${ErrorRate().measure(metrics)}")
         }
         return hardwareResult
@@ -363,12 +313,11 @@ class HardwareExploration(
         return dataCenter(
             cohort = hardware.nameCohort(workspace),
             hardware = hardware
-        ).runAsync(
+        ).executeAsync(
             workspace,
             executor,
             virtualUsers
-        ).thenApply {
-            @Suppress("DEPRECATION") val raw = CohortResult.toRawCohortResult(it)
+        ).thenApply { raw ->
             workspace.writeStatus(raw)
             return@thenApply score(hardware, raw, workspace)
         }
@@ -382,11 +331,10 @@ class HardwareExploration(
         infrastructureFormula = InfrastructureFormula(
             investment = investment,
             jiraFormula = DataCenterFormula.Builder(
-                database = scale.dataset.database,
+                productDistribution = PublicJiraSoftwareDistribution("7.13.0"),
                 jiraHomeSource = scale.dataset.jiraHomeSource,
-                productDistribution = PublicJiraSoftwareDistribution("7.13.0"))
-                .computer(EbsEc2Instance(hardware.instanceType).withVolumeSize(300))
-                .databaseComputer(EbsEc2Instance(InstanceType.M44xlarge).withVolumeSize(300))
+                database = scale.dataset.database
+            )
                 .configs((1..hardware.nodeCount).map {
                     JiraNodeConfig.Builder()
                         .name("jira-node-$it")
@@ -395,19 +343,20 @@ class HardwareExploration(
                             JiraLaunchTimeouts.Builder()
                                 .initTimeout(Duration.ofMinutes(7))
                                 .build()
-                        )
-                        .build()
+
+                        ).build()
                 })
+                .loadBalancerFormula(ElasticLoadBalancerFormula())
+                .computer(EbsEc2Instance(hardware.jira).withVolumeSize(300))
+                .databaseComputer(EbsEc2Instance(hardware.db).withVolumeSize(300))
                 .adminPwd(jiraAdminPassword)
                 .build(),
-            virtualUsersFormula = ThrottlingMulticastVirtualUsersFormula(
-                MulticastVirtualUsersFormula(
-                    nodes = scale.vuNodes,
-                    shadowJar = dereference("jpt.virtual-users.shadow-jar"),
-                    splunkForwarder = DisabledSplunkForwarder(),
-                    browser = Chromium69()
-                )
-            ),
+            virtualUsersFormula = MulticastVirtualUsersFormula.Builder(
+                nodes = scale.vuNodes,
+                shadowJar = dereference("jpt.virtual-users.shadow-jar")
+            )
+                .browser(Chromium69())
+                .build(),
             aws = aws
         )
     )
@@ -435,7 +384,7 @@ class HardwareExploration(
         )
         val postProcessedResults = results.flatMap { it.results }.map { postProcess(it) }
         reportRaw("sub-test-comparison", postProcessedResults, hardware)
-        if (testResult.apdexSpread > guidance.maxApdexSpread) {
+        if (testResult.apdexSpread > maxApdexSpread) {
             throw Exception("Apdex spread for $hardware is too big: ${apdexes.spread()}. Results: $results")
         }
         return testResult
@@ -453,41 +402,5 @@ class HardwareExploration(
             results = results,
             workspace = TestWorkspace(workspace.directory)
         )
-    }
-}
-
-class ExplorationGuidance(
-    val instanceTypes: List<InstanceType>,
-    val maxNodeCount: Int,
-    val minNodeCountForAvailability: Int,
-    val repeats: Int,
-    val minApdexGain: Double,
-    val maxApdexSpread: Double,
-    val maxErrorRate: Double,
-    val pastFailures: FailureTolerance
-)
-
-interface FailureTolerance {
-    fun handle(failure: Exception, workspace: TestWorkspace)
-}
-
-class LoggingFailureTolerance(
-    private val logger: Logger
-) : FailureTolerance {
-
-    override fun handle(failure: Exception, workspace: TestWorkspace) {
-        logger.error("Failure in $workspace, better investigate or remove it")
-    }
-}
-
-class ThrowingFailureTolerance : FailureTolerance {
-    override fun handle(failure: Exception, workspace: TestWorkspace) {
-        throw Exception("Failed in $workspace", failure)
-    }
-}
-
-class CleaningFailureTolerance : FailureTolerance {
-    override fun handle(failure: Exception, workspace: TestWorkspace) {
-        workspace.directory.toFile().deleteRecursively()
     }
 }
