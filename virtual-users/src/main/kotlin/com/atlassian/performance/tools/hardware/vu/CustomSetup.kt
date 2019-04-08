@@ -28,8 +28,8 @@ class CustomSetup(
 
     override fun run() {
         meter.measure(SET_UP) {
-            jira.navigateTo("secure/admin/ConfigureRTE!default.jspa")
-            disable()
+//            jira.navigateTo("secure/admin/ConfigureRTE!default.jspa")
+//            disable()
             if(disableAnalytic) disableAnalytic()
         }
     }

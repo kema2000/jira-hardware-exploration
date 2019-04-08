@@ -57,6 +57,8 @@ class HardwareExploration(
         .createUsers(true)
         .adminPassword(jiraAdminPassword)
         .build()
+    private val testParallelism = 2
+    private val semaphoreLock = Semaphore(testParallelism, true)
     private val awsParallelism = 3
     private val results = ConcurrentHashMap<Hardware, Future<HardwareExplorationResult>>()
     private val logger: Logger = LogManager.getLogger(this::class.java)
@@ -310,16 +312,21 @@ class HardwareExploration(
         workspace: TestWorkspace,
         executor: ExecutorService
     ): CompletableFuture<HardwareTestResult> {
-        return dataCenter(
-            cohort = hardware.nameCohort(workspace),
-            hardware = hardware
-        ).executeAsync(
-            workspace,
-            executor,
-            virtualUsers
-        ).thenApply { raw ->
-            workspace.writeStatus(raw)
-            return@thenApply score(hardware, raw, workspace)
+        try {
+            semaphoreLock.tryAcquire()
+            return dataCenter(
+                cohort = hardware.nameCohort(workspace),
+                hardware = hardware
+            ).executeAsync(
+                workspace,
+                executor,
+                virtualUsers
+            ).thenApply { raw ->
+                workspace.writeStatus(raw)
+                return@thenApply score(hardware, raw, workspace)
+            }
+        } finally {
+            semaphoreLock.release()
         }
     }
 
