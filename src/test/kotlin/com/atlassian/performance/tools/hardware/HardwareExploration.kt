@@ -56,7 +56,7 @@ class HardwareExploration(
         .createUsers(true)
         .adminPassword(jiraAdminPassword)
         .build()
-    private val testParallelism = 2
+    private val testParallelism = 3
     private val semaphoreLock = Semaphore(testParallelism, true)
     private val awsParallelism = 3
     private val results = ConcurrentHashMap<Hardware, Future<HardwareExplorationResult>>()
