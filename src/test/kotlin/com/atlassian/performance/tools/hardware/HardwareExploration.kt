@@ -1,6 +1,5 @@
 package com.atlassian.performance.tools.hardware
 
-import com.amazonaws.services.ec2.model.InstanceType
 import com.atlassian.performance.tools.aws.api.Aws
 import com.atlassian.performance.tools.aws.api.Investment
 import com.atlassian.performance.tools.awsinfrastructure.api.InfrastructureFormula
