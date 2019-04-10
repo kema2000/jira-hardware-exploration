@@ -140,7 +140,7 @@ class HardwareExplorationIT {
                 minNodeCount = 1,
                 maxNodeCount = 16,
                 minNodeCountForAvailability = 3,
-                minApdexGain = 0.01,
+                minApdexGain = 0.015,
                 db = M44xlarge,
                 resultsCache = resultCache
             )
